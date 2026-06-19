@@ -6,7 +6,7 @@ import { AttackConsole } from "@/components/AttackConsole";
 import { Logo } from "@/components/Logo";
 import { snowtrace, MANDATE_REGISTRY } from "@/lib/contracts";
 
-const GITHUB = "https://github.com/capline/capline";
+const GITHUB = "https://github.com/agnij-dutta/capline";
 
 export default function Landing() {
   return (

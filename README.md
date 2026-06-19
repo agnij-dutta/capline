@@ -4,7 +4,7 @@
 
 > Try the jailbreak yourself — **time-to-first-revert ≈ 60 seconds:**
 > ```bash
-> git clone <repo> && cd capline && npm install && npm run demo
+> git clone https://github.com/agnij-dutta/capline && cd capline && npm install && npm run demo
 > ```
 > Boots a local EVM, deploys the contracts, prompt-injects an agent into sending 1000 USDC to a scammer, and shows the chain reject it. No testnet funds needed.
 

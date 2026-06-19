@@ -2,7 +2,7 @@
 
 **Live:** https://capline-kappa.vercel.app
 **Contract (Fuji):** https://testnet.snowtrace.io/address/0x40367742b16c3DDa51B123751699032c5E446aF5
-**Repo:** github.com/capline/capline  ← push before posting
+**Repo:** github.com/agnij-dutta/capline  ← push before posting
 **Theme:** Team1 Speedrun · Agentic Payments · x402 + ERC-8004 · Avalanche
 
 ---
@@ -94,7 +94,7 @@
 > Try to break it yourself — there's a live attack console on the site:
 >
 > 🌐 https://capline-kappa.vercel.app
-> ⭐ github.com/capline/capline
+> ⭐ github.com/agnij-dutta/capline
 >
 > Built for @Team1 Speedrun on @avax with x402 + ERC-8004.
 >
