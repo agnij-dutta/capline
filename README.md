@@ -97,7 +97,7 @@ Boots a local EVM (anvil), deploys the contracts, and runs three scenarios on a 
 3. **With Capline.** *Identical attack*, defeated twice: the signer refuses (Layer A), and even a stolen key is reverted on-chain with `CapExceeded` (Layer B). ✓
 
 ```bash
-npm run test:contracts   # 16/16 — the caps revert (per-tx, cumulative, revoke, expiry, payee)
+npm run test:contracts   # 16/16 the caps revert (per-tx, cumulative, revoke, expiry, payee)
 ```
 
 ## Repo layout
