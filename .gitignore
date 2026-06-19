@@ -1,0 +1,12 @@
+node_modules/
+.env
+contracts/out/
+contracts/cache/
+contracts/broadcast/
+*.log
+.DS_Store
+contracts/.env
+.vercel
+**/.env
+web/.next/
+web/node_modules/

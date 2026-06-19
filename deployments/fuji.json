@@ -1,0 +1,10 @@
+{
+  "chainId": 43113,
+  "demoAgentId": 1,
+  "demoMandateId": "0x72a143ccb480da1190e7d549e2b8f8da2317039f7a13713e7be84b936ec17140",
+  "deployerAddress": "0xe87758C6CCcf3806C9f1f0C8F99f6Dcae36E5449",
+  "identityRegistry": "0xAF379a047DA00D6ea3271F577BEB6D43EB97f8d6",
+  "mandateRegistry": "0x40367742b16c3DDa51B123751699032c5E446aF5",
+  "rpcUrl": "https://api.avax-test.network/ext/bc/C/rpc",
+  "usdc": "0x5425890298aed601595a70AB815c96711a31Bc65"
+}
