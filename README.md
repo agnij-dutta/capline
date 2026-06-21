@@ -23,10 +23,10 @@ Capline moves the limit **out of the prompt and onto the chain.** A principal gr
 ## Add it in 10 seconds
 
 ```ts
-import { withMandate } from "capline";
+import { withCapline } from "capline";
 
 // the agent's brain calls this. it holds NO key.
-const xPayment = await withMandate({ signer, mandateId }).pay(paymentRequirements);
+const xPayment = await withCapline({ signer, mandateId }).pay(paymentRequirements);
 //   returns a signed x402 payment ONLY if it fits the on-chain mandate
 //   throws MandateExceeded otherwise. the agent physically cannot overspend.
 ```
@@ -105,7 +105,7 @@ npm run test:contracts   # 16/16 the caps revert (per-tx, cumulative, revoke, ex
 | Path | What |
 |---|---|
 | `contracts/` | Foundry. `MandateRegistry.sol` (the primitive) + minimal ERC-8004 `IdentityRegistry.sol` + tests + Fuji deploy script. |
-| `src/` | The TypeScript SDK + local demo: `signer.ts` (Layer A), `withMandate.ts` (the adopt API), `seller.ts` (x402 quote + facilitator), `agent.ts` (a deliberately gullible brain), `demo.ts`. |
+| `src/` | The TypeScript SDK + local demo: `signer.ts` (Layer A), `withCapline.ts` (the adopt API), `seller.ts` (x402 quote + facilitator), `agent.ts` (a deliberately gullible brain), `demo.ts`. |
 | `web/` | Next.js landing + dapp (the live site). The interactive attack console lives in `components/AttackConsole.tsx`. |
 | `marketing/` | Launch thread, demo-video script, announcement-graphic prompts. |
 

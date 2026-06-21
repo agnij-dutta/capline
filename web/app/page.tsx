@@ -190,10 +190,10 @@ export default function Landing() {
               tabs={[
                 {
                   label: "Wrap agent",
-                  code: `import { withMandate } from "capline"
+                  code: `import { withCapline } from "capline"
 
 // the agent's brain calls this. it holds NO key.
-const xPayment = await withMandate({ signer, mandateId })
+const xPayment = await withCapline({ signer, mandateId })
   .pay(paymentRequirements)
 // → returns a signed x402 payment ONLY if it fits the mandate
 // → throws MandateExceeded otherwise. it cannot overspend.`,

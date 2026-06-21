@@ -26,7 +26,7 @@ Keep the cursor deliberate; don't rush the money shot.
 
 ### [1:05–1:20] ADOPT
 **ON SCREEN:** Scroll to the "/adopt" code block (WRAP AGENT tab).
-*VO: "Adding it is one wrapper around the x402 client. Drop in withMandate, and your agent physically cannot overspend. No model changes."*
+*VO: "Adding it is one wrapper around the x402 client. Drop in withCapline, and your agent physically cannot overspend. No model changes."*
 
 ### [1:20–1:30] CLOSE
 **ON SCREEN:** Scroll to the lime CTA "STOP TRUSTING. START ENFORCING." → end on the Capline wordmark.

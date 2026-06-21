@@ -31,7 +31,7 @@ import { artifact, anvilLocal, usdc, fmtUsdc } from "./chain.js";
 import { ConstrainedSigner } from "./signer.js";
 import { Seller, Facilitator } from "./seller.js";
 import { think } from "./agent.js";
-import { withMandate } from "./withMandate.js";
+import { withCapline } from "./withCapline.js";
 
 // ---- pretty printing ---------------------------------------------------
 const c = {
@@ -136,7 +136,7 @@ async function main() {
     const signer = new ConstrainedSigner(KEYS.agentSigner, pub, regRef);
     const facilitator = new Facilitator(wallet, A.deployer, pub, regRef, usdcRef);
     const seller = new Seller(A.merchant.address, 2n, token, ASSET_DOMAIN);
-    const client = withMandate({ signer, mandateId: MANDATE_ID });
+    const client = withCapline({ signer, mandateId: MANDATE_ID });
 
     const bal = async (addr: `0x${string}`) =>
       fmtUsdc((await pub.readContract({ address: token, abi: usdcRef.abi, functionName: "balanceOf", args: [addr] })) as bigint);
@@ -233,7 +233,7 @@ async function main() {
     console.log(c.bold(c.green("  The agent was defeated, not trusted.")));
     console.log(c.dim("  The cap isn't in the prompt — it's a contract the LLM can't talk to.\n"));
     console.log(c.dim("  Wire it into your x402 agent:"));
-    console.log(c.cyan("    const xPayment = await withMandate({ signer, mandateId }).pay(req)"));
+    console.log(c.cyan("    const xPayment = await withCapline({ signer, mandateId }).pay(req)"));
     console.log(c.dim("    // throws MandateExceeded instead of overspending\n"));
   } finally {
     anvil.kill();

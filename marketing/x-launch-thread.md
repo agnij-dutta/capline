@@ -85,7 +85,7 @@
 **7/ 10-second adopt (the code screenshot)**
 > Adding it to your agent is one wrapper around the x402 client:
 >
-> const xPayment = await withMandate({ signer, mandateId }).pay(req)
+> const xPayment = await withCapline({ signer, mandateId }).pay(req)
 > // throws MandateExceeded instead of overspending
 >
 > No model changes. Your agent physically can't overspend.
@@ -129,4 +129,4 @@
 - Best windows: Tue–Thu, ~12-2pm IST for the India + @Team1IND overlap, or ~9-11am ET for crypto-dev.
 
 ## One spicy follow-up (optional, day 2)
-Ship the reusable piece as its own post: a `withMandate` / x402 spend-guard middleware. "We extracted the enforcement layer so any x402 agent can drop it in." Reframes you from contestant to infrastructure.
+Ship the reusable piece as its own post: a `withCapline` / x402 spend-guard middleware. "We extracted the enforcement layer so any x402 agent can drop it in." Reframes you from contestant to infrastructure.

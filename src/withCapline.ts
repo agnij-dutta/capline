@@ -1,6 +1,6 @@
 // The primitive other builders adopt.
 //
-//   const client = withMandate({ signer, mandateId });
+//   const client = withCapline({ signer, mandateId });
 //   const xPaymentHeader = await client.pay(paymentRequirements); // or throws
 //
 // One wrapper around the buyer side of x402: it takes the seller's 402
@@ -26,7 +26,7 @@ export interface MandateClientOpts {
   mandateId: `0x${string}`;
 }
 
-export function withMandate(opts: MandateClientOpts) {
+export function withCapline(opts: MandateClientOpts) {
   return {
     /** Build an x402 payment header for a 402 within the mandate, or throw. */
     async pay(req: PaymentRequirements, override?: { to?: `0x${string}`; value?: bigint }): Promise<string> {
