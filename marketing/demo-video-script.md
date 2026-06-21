@@ -1,7 +1,7 @@
 # Capline · demo video script (submission)
 
 **Target: 75–90 seconds. Screen recording of the real, live app. No slides.**
-Live site: https://capline-kappa.vercel.app · Contract (Fuji): `0x40367742b16c3DDa51B123751699032c5E446aF5`
+Live site: https://capline-protocol.vercel.app · Contract (Fuji): `0x40367742b16c3DDa51B123751699032c5E446aF5`
 
 Format below: **[time] ON SCREEN — what you do** → *VOICEOVER (what you say).*
 Keep the cursor deliberate; don't rush the money shot.

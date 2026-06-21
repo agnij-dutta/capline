@@ -6,7 +6,7 @@
 
 > The cap isn't in the prompt. It's a contract the LLM can't talk to.
 
-**[▶ Live demo + attack console](https://capline-kappa.vercel.app)** · **[Contract on Snowtrace](https://testnet.snowtrace.io/address/0x40367742b16c3DDa51B123751699032c5E446aF5)** · Avalanche Fuji · x402 + ERC-8004
+**[▶ Live demo + attack console](https://capline-protocol.vercel.app)** · **[Contract on Snowtrace](https://testnet.snowtrace.io/address/0x40367742b16c3DDa51B123751699032c5E446aF5)** · Avalanche Fuji · x402 + ERC-8004
 
 ---
 
@@ -51,7 +51,7 @@ cast call 0x40367742b16c3DDa51B123751699032c5E446aF5 \
 | **IdentityRegistry** (ERC-8004) | [`0xAF379a047DA00D6ea3271F577BEB6D43EB97f8d6`](https://testnet.snowtrace.io/address/0xAF379a047DA00D6ea3271F577BEB6D43EB97f8d6) |
 | USDC (Circle, EIP-3009) | [`0x5425890298aed601595a70AB815c96711a31Bc65`](https://testnet.snowtrace.io/address/0x5425890298aed601595a70AB815c96711a31Bc65) |
 
-The [live dapp](https://capline-kappa.vercel.app/app) lets you grant a mandate, watch the cap meter, and **prompt-inject the agent yourself** to see it refused off-chain and reverted on-chain.
+The [live dapp](https://capline-protocol.vercel.app/app) lets you grant a mandate, watch the cap meter, and **prompt-inject the agent yourself** to see it refused off-chain and reverted on-chain.
 
 ## How it works
 

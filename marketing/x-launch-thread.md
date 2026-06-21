@@ -1,6 +1,6 @@
 # Capline · X launch thread
 
-**Live:** https://capline-kappa.vercel.app
+**Live:** https://capline-protocol.vercel.app
 **Contract (Fuji):** https://testnet.snowtrace.io/address/0x40367742b16c3DDa51B123751699032c5E446aF5
 **Repo:** https://github.com/agnij-dutta/capline
 **Theme:** @Team1IND Speedrun · Agentic Payments · x402 + ERC-8004 · @avax
@@ -97,7 +97,7 @@
 **8/ CTA**
 > Try to break it yourself. There's a live attack console on the site:
 >
-> 🌐 https://capline-kappa.vercel.app
+> 🌐 https://capline-protocol.vercel.app
 > ⭐ https://github.com/agnij-dutta/capline
 >
 > Built on x402 + ERC-8004, shipped on @avax for the @Team1IND Speedrun. If you're building agents that hold money, you need this.
@@ -116,7 +116,7 @@
 ## Assets (status)
 - [x] **Money-shot clip (tweet 1)** → `marketing/assets/capline-moneyshot.mp4` (8.5s) + `.gif`
 - [x] **Reverted screenshot (tweet 4)** → `marketing/assets/capline-reverted-frame.png`
-- [x] **Adopt code screenshot (tweet 7)** → grab from `capline-kappa.vercel.app/#adopt` (or ask me to recapture)
+- [x] **Adopt code screenshot (tweet 7)** → grab from `capline-protocol.vercel.app/#adopt` (or ask me to recapture)
 - [x] **GitHub repo pushed** → github.com/agnij-dutta/capline (consider adding 2-3 "good first issues" first)
 - [ ] **Announcement graphic** (optional pinned image): diptych for cold-open, or the cap-line as og:image. Prompts in `announcement-graphic-prompts.md` / `brand-asset-prompts.md`.
 
