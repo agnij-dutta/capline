@@ -10,3 +10,4 @@ contracts/.env
 **/.env
 web/.next/
 web/node_modules/
+pnpm-lock.yaml
