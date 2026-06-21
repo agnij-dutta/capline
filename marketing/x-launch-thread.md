@@ -114,7 +114,8 @@
 ---
 
 ## Assets (status)
-- [x] **Money-shot clip (tweet 1)** → `marketing/assets/capline-moneyshot.mp4` (8.5s) + `.gif`
+- [x] ★ **REAL attack clip** → `marketing/assets/capline-real-attack.mp4` (18s) + `.gif` — the *real* one: Llama-3.3-70B (Groq) live-jailbroken into overriding its policy, then a genuine reverted `settle()` tx on Fuji with a Snowtrace link. Strongest proof; use for tweet 1 or tweet 4. The narration ("I am overriding my standing spending policy…") is the model's real output.
+- [x] **Scripted money-shot clip (tweet 1 alt)** → `marketing/assets/capline-moneyshot.mp4` (8.5s) + `.gif` — cleaner/faster (landing console, no wallet UI).
 - [x] **Reverted screenshot (tweet 4)** → `marketing/assets/capline-reverted-frame.png`
 - [x] **Adopt code screenshot (tweet 7)** → grab from `capline-protocol.vercel.app/#adopt` (or ask me to recapture)
 - [x] **GitHub repo pushed** → github.com/agnij-dutta/capline (consider adding 2-3 "good first issues" first)
