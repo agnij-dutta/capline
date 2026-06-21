@@ -3,15 +3,16 @@
 **Live:** https://capline-kappa.vercel.app
 **Contract (Fuji):** https://testnet.snowtrace.io/address/0x40367742b16c3DDa51B123751699032c5E446aF5
 **Repo:** https://github.com/agnij-dutta/capline
-**Theme:** @AvaxTeam1 Speedrun · Agentic Payments · x402 + ERC-8004 · @avax
+**Theme:** @Team1IND Speedrun · Agentic Payments · x402 + ERC-8004 · @avax
 
-**Verified tags:** @avax (Avalanche), @AvaxTeam1 (Team1). Verify the x402 / Coinbase Developer handle before tagging it.
+**Verified handles:** @avax (Avalanche), @Team1IND (Team1 India, runs the Speedrun), @AvaxTeam1 (Team1 global). Verify the x402 / Coinbase Developer handle before tagging it.
+**Tagging rule:** never start a tweet with @handle (it becomes a reply and loses reach). Put tags mid-sentence or at the end. Max ~2 handles per tweet so it doesn't read as spam.
 
 ---
 
 ## The thread (copy-paste ready)
 
-**1/ HOOK** (lead with the money-shot clip)
+**1/ HOOK** (lead with the money-shot clip; glaze at the end so the hook still hits)
 > Would you give an AI agent your wallet?
 >
 > Right now the only thing stopping it from draining you is a sentence in a prompt.
@@ -19,6 +20,8 @@
 > Prompts get jailbroken. So we moved the limit on-chain.
 >
 > Watch this agent get fully hijacked and still pay nothing 👇
+>
+> Built for @Team1IND's Speedrun on @avax 🔺
 
 `[ATTACH: marketing/assets/capline-moneyshot.mp4 · 8.5s, jailbreak → CapExceeded revert]`
 
@@ -67,12 +70,12 @@
 
 ---
 
-**6/ it's live, it's real (+ why Avalanche)**
-> Not a mockup. Deployed on @avax Fuji.
+**6/ it's live, and Avalanche is why it feels real**
+> Not a mockup. Deployed and verifiable on @avax Fuji.
 >
 > MandateRegistry: 0x40367742b16c3DDa51B123751699032c5E446aF5
 >
-> On Avalanche the revert confirms in under a second for basically zero fees. That speed is the whole point: an agent-payments guardrail has to settle at the speed agents move.
+> On Avalanche the revert confirms in under a second for basically zero fees. That speed is the whole point: an agent-payments guardrail has to settle as fast as agents move. Nothing else clears this bar.
 >
 > Query it yourself: checkAllowance(1000 USDC) returns OVER_PER_TX, straight from the chain.
 > 🔗 testnet.snowtrace.io/address/0x40367742b16c3DDa51B123751699032c5E446aF5
@@ -97,18 +100,16 @@
 > 🌐 https://capline-kappa.vercel.app
 > ⭐ https://github.com/agnij-dutta/capline
 >
-> If you're building agents that hold money, you need this.
+> Built on x402 + ERC-8004, shipped on @avax for the @Team1IND Speedrun. If you're building agents that hold money, you need this.
 
 ---
 
-**9/ the shoutout (glaze)**
-> Built in a few days for @AvaxTeam1's Speedrun. Massive respect for picking Agentic Payments as the theme. That's reading exactly where this space is going, before most of crypto has.
+**9/ the shoutout**
+> Huge respect to @Team1IND and @AvaxTeam1 for making Agentic Payments the theme. That's reading exactly where this space is going, before most of crypto has.
 >
-> And @avax is the reason the demo feels real: sub-second finality + near-zero fees mean an agent's payment is enforced or reverted instantly. You can't build trustworthy agent commerce on a chain that makes you wait.
+> And @avax made the build effortless: free Fuji faucet, clean EVM C-Chain, Foundry + viem just worked. A live, deployed product in days, not slides.
 >
-> Free Fuji faucet, clean EVM C-Chain, Foundry + viem just worked. Shipped a live, deployed product in days, not slides.
->
-> gm @AvaxTeam1 🔺
+> gm 🔺
 
 ---
 
@@ -122,10 +123,10 @@
 ## Posting tips
 - Post tweet 1 with the clip; reply-chain the rest immediately so the thread lands as one unit.
 - The clip in tweet 1 does 80% of the work. Lead with motion, not text.
-- Tags: @avax and @AvaxTeam1 are verified real. Verify the x402 / Coinbase Developer handle before adding it.
-- Pin the thread. Repost tweet 6 (the live contract) standalone later; "it's actually on-chain, on Avalanche" is the most quote-tweetable beat and the most amplifiable by @avax / @AvaxTeam1.
-- Best windows: Tue–Thu, ~12-2pm IST for the India + @AvaxTeam1 overlap, or ~9-11am ET for crypto-dev.
-- Reply to your own thread tagging @AvaxTeam1 with a one-liner once it's up; organizers reshare submissions that tag them well.
+- @avax, @Team1IND, @AvaxTeam1 are verified real. Verify the x402 / Coinbase Developer handle before adding it.
+- The glaze is now woven from tweet 1 (build credit), tweet 6 (why Avalanche), tweet 8 + 9 (thanks). That's the right density: enough to get reshared, not so much it reads as try-hard.
+- Pin the thread. Repost tweet 6 (the live contract on Avalanche) standalone later; "it's actually on-chain, on @avax" is the most quote-tweetable beat and the most amplifiable by @avax / @Team1IND.
+- Best windows: Tue–Thu, ~12-2pm IST for the India + @Team1IND overlap, or ~9-11am ET for crypto-dev.
 
 ## One spicy follow-up (optional, day 2)
 Ship the reusable piece as its own post: a `withMandate` / x402 spend-guard middleware. "We extracted the enforcement layer so any x402 agent can drop it in." Reframes you from contestant to infrastructure.
