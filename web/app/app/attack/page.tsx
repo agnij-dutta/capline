@@ -36,7 +36,7 @@ const PRESETS = [
 type Brain = {
   monologue: string[];
   proposal: { to: string; amountUsdc: number } | null;
-  source: "claude" | "fallback";
+  source: "groq" | "fallback";
 };
 
 type Phase = "idle" | "thinking" | "brain" | "settling" | "reverted" | "settled" | "error";
@@ -208,7 +208,7 @@ function LiveAttack() {
           <div className="flex items-center justify-between border-b-2 border-line bg-inset px-4 py-2.5">
             <span className="kicker text-dim">The agent</span>
             <span className="kicker text-faint">
-              {brain.source === "claude" ? "claude-opus-4-8 · real" : "scripted fallback"}
+              {brain.source === "groq" ? "llama-3.3-70b · live" : "scripted fallback"}
             </span>
           </div>
           <div className="p-4 font-mono text-[12px] leading-relaxed">
