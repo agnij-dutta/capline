@@ -43,8 +43,21 @@ const sig = await client.pay({ merchant, merchantTokenAccount, amount });
 ```bash
 # toolchain: Rust, Solana (Agave) CLI, Anchor 1.1.x via avm
 anchor build
-cargo test           # Rust + LiteSVM integration tests (the 3-scenario proof)
+cargo test           # Rust + LiteSVM: 4-scenario enforcement + ed25519 AP2 attestation + CU bench
+
+# live x402 loop (needs a running validator + deployed program):
+solana-test-validator &                 # local cluster
+anchor deploy                           # deploy the program
+node x402/demo.mjs                       # agent↔seller: 402 → pay → 200, jailbreaks blocked
 ```
+
+## The x402 loop (`x402/demo.mjs`)
+
+A real HTTP 402 handshake with Solana settlement: the agent hits a paid endpoint,
+gets `402 Payment Required` + x402 `PaymentRequirements`, pays **through
+`withCapline`**, retries with the settled tx signature as proof, and gets `200`.
+A jailbroken agent told to overpay or pay a scammer is stopped (Layer A refusal
+or on-chain `settle` revert) — no proof, no content, no funds moved.
 
 ## What's inherited from the EVM original vs new
 
