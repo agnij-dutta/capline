@@ -9,13 +9,15 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.105.0",
+    "@coral-xyz/anchor": "^0.31.1",
+    "@solana/spl-token": "^0.4.14",
+    "@solana/web3.js": "^1.98.4",
     "@tanstack/react-query": "^5.101.0",
+    "buffer": "^6.0.3",
     "motion": "^12.40.0",
     "next": "16.2.9",
     "react": "19.2.4",
-    "react-dom": "19.2.4",
-    "viem": "^2.52.2",
-    "wagmi": "^3.6.17"
+    "react-dom": "19.2.4"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

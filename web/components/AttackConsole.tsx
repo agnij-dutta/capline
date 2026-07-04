@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { snowtrace, MANDATE_REGISTRY } from "@/lib/contracts";
+import { explorer, PROGRAM_ID } from "@/lib/program";
 
 /*
   THE MONEY SHOT — a split-state console that plays the defeat:
@@ -342,12 +342,12 @@ function Verdict({
             The model obeyed you. The chain didn&apos;t.
           </p>
           <a
-            href={snowtrace(MANDATE_REGISTRY)}
+            href={explorer(PROGRAM_ID.toBase58())}
             target="_blank"
             rel="noopener noreferrer"
             className="mt-3 inline-flex items-center gap-1.5 border-2 border-line-strong px-3 py-2 font-mono text-[11px] uppercase tracking-[0.08em] text-fg transition-colors hover:border-accent hover:text-accent"
           >
-            View contract on Snowtrace ↗
+            View program on Solana Explorer ↗
           </a>
         </div>
       )}

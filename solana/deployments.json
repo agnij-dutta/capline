@@ -1,0 +1,7 @@
+{
+  "programId": "DRNWDxtJ3P5hQCdGcmL3XXMW9NtnE345HTaWkk9dUhHp",
+  "clusters": {
+    "localnet": { "rpc": "http://127.0.0.1:8899", "deployed": true },
+    "devnet":   { "rpc": "https://api.devnet.solana.com", "deployed": false, "blockedOn": "faucet rate limit" }
+  }
+}
