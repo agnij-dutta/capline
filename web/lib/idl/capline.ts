@@ -14,6 +14,68 @@ export type Capline = {
   },
   "instructions": [
     {
+      "name": "attestAp2",
+      "docs": [
+        "Prove the principal actually ed25519-SIGNED the AP2 mandate — not just",
+        "that someone committed a hash. The transaction must carry an Ed25519",
+        "program instruction (the native program verifies the signature); this",
+        "handler introspects it and binds it: the signer must be the principal,",
+        "and sha256(signed message) must equal the mandate's committed ap2_hash.",
+        "Flips `ap2_verified`, turning the commitment into a proof."
+      ],
+      "discriminator": [
+        50,
+        75,
+        178,
+        13,
+        216,
+        233,
+        116,
+        130
+      ],
+      "accounts": [
+        {
+          "name": "principal",
+          "signer": true
+        },
+        {
+          "name": "mandate",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  110,
+                  100,
+                  97,
+                  116,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mandate.principal",
+                "account": "mandate"
+              },
+              {
+                "kind": "account",
+                "path": "mandate.nonce",
+                "account": "mandate"
+              }
+            ]
+          }
+        },
+        {
+          "name": "instructionsSysvar",
+          "address": "Sysvar1nstructions1111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "createMandate",
       "docs": [
         "A principal (the human/owner) grants a bounded, revocable mandate to an",
@@ -356,6 +418,19 @@ export type Capline = {
   ],
   "events": [
     {
+      "name": "ap2Verified",
+      "discriminator": [
+        36,
+        165,
+        70,
+        117,
+        84,
+        231,
+        80,
+        3
+      ]
+    },
+    {
       "name": "mandateCreated",
       "discriminator": [
         140,
@@ -455,9 +530,45 @@ export type Capline = {
       "code": 6011,
       "name": "mathOverflow",
       "msg": "arithmetic overflow"
+    },
+    {
+      "code": 6012,
+      "name": "missingAp2Proof",
+      "msg": "no Ed25519 signature-verification instruction found in the transaction"
+    },
+    {
+      "code": 6013,
+      "name": "badAp2Proof",
+      "msg": "malformed Ed25519 instruction data"
+    },
+    {
+      "code": 6014,
+      "name": "ap2SignerMismatch",
+      "msg": "AP2 signature is not from the mandate principal"
+    },
+    {
+      "code": 6015,
+      "name": "ap2HashMismatch",
+      "msg": "signed message does not match the committed AP2 hash"
     }
   ],
   "types": [
+    {
+      "name": "ap2Verified",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "mandate",
+            "type": "pubkey"
+          },
+          {
+            "name": "signer",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
     {
       "name": "mandate",
       "type": {
@@ -516,6 +627,14 @@ export type Capline = {
           },
           {
             "name": "revoked",
+            "type": "bool"
+          },
+          {
+            "name": "ap2Verified",
+            "docs": [
+              "true once the principal's ed25519 signature over the AP2 mandate has been",
+              "proven on-chain (see `attest_ap2`)."
+            ],
             "type": "bool"
           },
           {
