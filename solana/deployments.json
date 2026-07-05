@@ -1,0 +1,13 @@
+{
+  "programId": "DRNWDxtJ3P5hQCdGcmL3XXMW9NtnE345HTaWkk9dUhHp",
+  "clusters": {
+    "localnet": { "rpc": "http://127.0.0.1:8899", "deployed": true },
+    "devnet": {
+      "rpc": "https://api.devnet.solana.com",
+      "deployed": true,
+      "deployTx": "wcFE63Qt93PJyt3Gq4YUKGeCKcRsqhrApJQPXPk6V8GHgDq2gzszNNwU5jvpm5zjcQjDAXvMetR3MMx5jT14oV4",
+      "authority": "J2GeZ1D4s2zivFEhgpfrV26DBDGCfrdUqruFpybqgDH9",
+      "explorer": "https://explorer.solana.com/address/DRNWDxtJ3P5hQCdGcmL3XXMW9NtnE345HTaWkk9dUhHp?cluster=devnet"
+    }
+  }
+}

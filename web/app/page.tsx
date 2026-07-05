@@ -4,7 +4,7 @@ import { CodeBlock } from "@/components/landing/CodeBlock";
 import { Tagline } from "@/components/landing/Tagline";
 import { AttackConsole } from "@/components/AttackConsole";
 import { Logo } from "@/components/Logo";
-import { snowtrace, MANDATE_REGISTRY } from "@/lib/contracts";
+import { explorer, PROGRAM_ID } from "@/lib/program";
 
 const GITHUB = "https://github.com/agnij-dutta/capline";
 
@@ -48,7 +48,7 @@ export default function Landing() {
               See it get defeated ↓
             </a>
             <a
-              href={snowtrace(MANDATE_REGISTRY)}
+              href={explorer(PROGRAM_ID.toBase58())}
               target="_blank"
               rel="noopener noreferrer"
               className="border-2 border-line-strong px-6 py-3.5 font-mono text-sm uppercase tracking-[0.08em] text-fg transition-colors duration-75 hover:border-accent hover:text-accent"
@@ -113,7 +113,7 @@ export default function Landing() {
                   <span className="text-safe">✓</span> reverts CapExceeded
                 </li>
                 <li>
-                  <span className="text-safe">✓</span> lives on Avalanche Fuji
+                  <span className="text-safe">✓</span> lives on Solana
                 </li>
               </ul>
             </div>
@@ -202,7 +202,7 @@ const xPayment = await withCapline({ signer, mandateId })
                   label: "Deploy mandate",
                   code: `// grant a scoped spend mandate to an agent identity
 await registry.createMandate(mandateId, {
-  agentId,                 // ERC-8004 identity
+  agentId,                 // Solana Agent Registry identity
   agentSigner,
   maxPerTx:      5_000000,  // 5 USDC / tx
   maxCumulative: 20_000000, // 20 USDC lifetime
@@ -221,7 +221,7 @@ await registry.createMandate(mandateId, {
               <span className="text-safe">✓</span> no model changes
             </span>
             <span>
-              <span className="text-safe">✓</span> enforced on-chain on Fuji
+              <span className="text-safe">✓</span> enforced on-chain on Solana
             </span>
           </div>
         </div>
@@ -269,7 +269,7 @@ await registry.createMandate(mandateId, {
                 </p>
                 <p className="mt-5 max-w-sm font-mono text-xs leading-relaxed text-faint">
                   On-chain spend authority for AI agents. Built on x402 +
-                  ERC-8004, Avalanche Fuji.
+                  AP2, Solana.
                 </p>
                 <Link
                   href="/app"
@@ -286,17 +286,17 @@ await registry.createMandate(mandateId, {
                 <FooterLink href={GITHUB} external>
                   GitHub ↗
                 </FooterLink>
-                <FooterLink href={snowtrace(MANDATE_REGISTRY)} external>
+                <FooterLink href={explorer(PROGRAM_ID.toBase58())} external>
                   Contract ↗
                 </FooterLink>
               </FooterCell>
               <FooterCell title="Product">
                 <FooterLink href="/app">Dashboard →</FooterLink>
-                <FooterLink href="/app/attack">Attack →</FooterLink>
+                <FooterLink href="/app">Attack →</FooterLink>
               </FooterCell>
               <FooterCell title="Chain" last>
-                <span className="font-mono text-xs text-dim">Avalanche Fuji</span>
-                <span className="font-mono text-[11px] text-faint">id 43113</span>
+                <span className="font-mono text-xs text-dim">Solana</span>
+                <span className="font-mono text-[11px] text-faint">x402 · AP2</span>
               </FooterCell>
             </div>
           </div>

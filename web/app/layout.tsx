@@ -17,7 +17,7 @@ const jbMono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "CAPLINE · on-chain spend authority for AI agents",
   description:
-    "Jailbreak the model all you want. It still can't pay over its mandate. The cap isn't in the prompt. It's a contract the LLM can't talk to. Built on x402 + ERC-8004, Avalanche Fuji.",
+    "Jailbreak the model all you want. It still can't pay over its signed AP2 mandate. The cap isn't in the prompt. It's a contract the LLM can't talk to. Built on x402 + AP2, Solana.",
   metadataBase: new URL("https://capline.xyz"),
   openGraph: {
     title: "CAPLINE · on-chain spend authority for AI agents",
