@@ -12,7 +12,7 @@ import { readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import anchorPkg from "@coral-xyz/anchor";
 const { Program, AnchorProvider, BN } = anchorPkg;
-import { Connection, Keypair, PublicKey, LAMPORTS_PER_SOL } from "@solana/web3.js";
+import { Connection, Keypair, PublicKey, LAMPORTS_PER_SOL, Ed25519Program, SYSVAR_INSTRUCTIONS_PUBKEY } from "@solana/web3.js";
 import {
   createMint, getOrCreateAssociatedTokenAccount, mintTo, getAccount, TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
@@ -46,13 +46,24 @@ async function setup() {
   const nonce = new BN(Math.floor(Math.random() * 1e6));
   const mandate = mandatePda(principal.publicKey, nonce);
   const vault = vaultPda(mandate);
-  const ap2 = Array.from(createHash("sha256").update("ap2-intent").digest());
+  const ap2Message = Buffer.from("AP2:intent principal spends<=5 merchant=X nonce=" + nonce.toString());
+  const ap2 = Array.from(createHash("sha256").update(ap2Message).digest());
   await prog(principal).methods
     .createMandate(nonce, agent.publicKey, new BN(5 * USDC), new BN(50 * USDC),
       new BN(Math.floor(Date.now() / 1000) + 3600), ap2, [merchant.publicKey])
     .accounts({ principal: principal.publicKey, mint, mandate, vault,
       tokenProgram: TOKEN_PROGRAM_ID, systemProgram: new PublicKey("11111111111111111111111111111111") })
     .rpc();
+
+  // prove the principal actually ed25519-SIGNED the AP2 intent (on-chain attest)
+  const edIx = Ed25519Program.createInstructionWithPrivateKey({
+    privateKey: principal.secretKey, message: ap2Message,
+  });
+  await prog(principal).methods.attestAp2()
+    .accounts({ principal: principal.publicKey, mandate, instructionsSysvar: SYSVAR_INSTRUCTIONS_PUBKEY })
+    .preInstructions([edIx]).rpc();
+  const m = await prog(principal).account.mandate.fetch(mandate);
+  log(`  mandate created · ap2_verified=${m.ap2Verified} (principal signature bound on-chain)`);
   const merchantAta = (await getOrCreateAssociatedTokenAccount(conn, principal, mint, merchant.publicKey)).address;
   const scammerAta = (await getOrCreateAssociatedTokenAccount(conn, principal, mint, scammer.publicKey)).address;
   await mintTo(conn, principal, mint, vault, principal, 50 * USDC);
@@ -162,6 +173,19 @@ log(`   → BLOCKED (${out.reason}) · no content, no funds moved\n`);
 log("③ jailbroken agent told to pay a scammer");
 out = await agentBuys(url, ctx, "scammer");
 log(`   → BLOCKED (${out.reason}) · scammer got nothing\n`);
+
+log("④ COMPROMISED agent key bypasses the off-chain gate entirely (Layer A skipped)");
+let layerB;
+try {
+  // attacker holds the agent key and calls settle() directly — no withCapline
+  await prog(ctx.agent).methods.settle(new BN(1000 * USDC))
+    .accounts({ mandate: ctx.mandate, agent: ctx.agent.publicKey, vault: ctx.vault,
+      merchant: ctx.merchant.publicKey, merchantTokenAccount: ctx.merchantAta, tokenProgram: TOKEN_PROGRAM_ID }).rpc();
+  layerB = "NOT REVERTED (bug!)";
+} catch (e) {
+  layerB = (/Error Code: (\w+)/.exec(e.message) || [])[1] || "reverted";
+}
+log(`   → Layer B: the chain reverted it anyway (${layerB}) · the key alone is not enough\n`);
 
 const merchBal = Number((await getAccount(conn, ctx.merchantAta)).amount) / USDC;
 const scamBal = Number((await getAccount(conn, ctx.scammerAta)).amount) / USDC;

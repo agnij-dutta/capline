@@ -60,4 +60,19 @@ export function program(conn: Connection, kp: Keypair): Program {
   return new Program(idl as Idl, provider);
 }
 
+/** The subset of a wallet-adapter wallet we rely on. */
+export interface WalletLike {
+  publicKey: PublicKey;
+  signTransaction: <T extends Transaction | VersionedTransaction>(tx: T) => Promise<T>;
+  signAllTransactions: <T extends Transaction | VersionedTransaction>(txs: T[]) => Promise<T[]>;
+  signMessage?: (message: Uint8Array) => Promise<Uint8Array>;
+  sendTransaction: (tx: Transaction, connection: Connection, options?: unknown) => Promise<string>;
+}
+
+/** An Anchor Program signing through a connected wallet (Phantom, etc.). */
+export function programFromWallet(conn: Connection, wallet: WalletLike): Program {
+  const provider = new AnchorProvider(conn, wallet as never, { commitment: "confirmed" });
+  return new Program(idl as Idl, provider);
+}
+
 export { BN, PublicKey, Keypair };

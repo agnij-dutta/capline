@@ -5,22 +5,37 @@
 // opens a mandate (cap 5/tx, 50 total, merchant allowlisted), funds the vault —
 // then lets you fire settlements and watch the chain accept the legit one and
 // REVERT the over-cap / off-allowlist ones. Real transactions, real reverts.
-import { Connection, Keypair, PublicKey, LAMPORTS_PER_SOL } from "@solana/web3.js";
+import {
+  Connection,
+  Keypair,
+  PublicKey,
+  LAMPORTS_PER_SOL,
+  Ed25519Program,
+  SYSVAR_INSTRUCTIONS_PUBKEY,
+  Transaction,
+  SystemProgram,
+} from "@solana/web3.js";
 import {
   createMint,
   getOrCreateAssociatedTokenAccount,
   mintTo,
   getAccount,
   TOKEN_PROGRAM_ID,
+  MINT_SIZE,
+  getMinimumBalanceForRentExemptMint,
+  createInitializeMint2Instruction,
+  createMintToInstruction,
+  createAssociatedTokenAccountIdempotentInstruction,
+  getAssociatedTokenAddressSync,
 } from "@solana/spl-token";
-import { program, mandatePda, vaultPda, BN } from "./program";
+import { program, programFromWallet, mandatePda, vaultPda, BN, type WalletLike } from "./program";
 
 const USDC = 1_000_000; // 6 decimals
 export const CAP_PER_TX = 5; // USDC
 export const CAP_TOTAL = 50; // USDC
 
 export interface DemoCtx {
-  principal: Keypair;
+  principalPubkey: PublicKey;
   agent: Keypair;
   merchant: Keypair;
   scammer: Keypair;
@@ -30,12 +45,15 @@ export interface DemoCtx {
   merchantAta: PublicKey;
   scammerAta: PublicKey;
   ap2Hash: number[];
+  ap2Verified: boolean;
 }
 
-async function ap2Hash(fields: Record<string, unknown>): Promise<number[]> {
+/** Canonical AP2 message bytes + its sha256 (the on-chain commitment). */
+async function ap2(fields: Record<string, unknown>): Promise<{ message: Uint8Array; hash: number[] }> {
   const canonical = JSON.stringify(fields, Object.keys(fields).sort());
-  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(canonical));
-  return Array.from(new Uint8Array(buf));
+  const message = new TextEncoder().encode(canonical);
+  const buf = await crypto.subtle.digest("SHA-256", message);
+  return { message, hash: Array.from(new Uint8Array(buf)) };
 }
 
 export async function setupDemo(
@@ -62,7 +80,7 @@ export async function setupDemo(
   const vault = vaultPda(mandate);
 
   const notAfter = new BN(Math.floor(Date.now() / 1000) + 3600);
-  const hash = await ap2Hash({
+  const { message, hash } = await ap2({
     agent: agent.publicKey.toBase58(),
     maxPerTx: String(CAP_PER_TX * USDC),
     merchants: [merchant.publicKey.toBase58()],
@@ -94,6 +112,28 @@ export async function setupDemo(
     })
     .rpc();
 
+  // prove the principal actually ed25519-signed the AP2 intent, bound on-chain
+  log("attesting AP2 signature on-chain…");
+  let ap2Verified = false;
+  try {
+    const edIx = Ed25519Program.createInstructionWithPrivateKey({
+      privateKey: principal.secretKey,
+      message,
+    });
+    await program(conn, principal)
+      .methods.attestAp2()
+      .accounts({
+        principal: principal.publicKey,
+        mandate,
+        instructionsSysvar: SYSVAR_INSTRUCTIONS_PUBKEY,
+      })
+      .preInstructions([edIx])
+      .rpc();
+    ap2Verified = true;
+  } catch {
+    /* attestation is best-effort in the demo; mandate still enforces */
+  }
+
   log("funding vault + merchant accounts…");
   const merchantAta = (
     await getOrCreateAssociatedTokenAccount(conn, principal, mint, merchant.publicKey)
@@ -103,8 +143,111 @@ export async function setupDemo(
   ).address;
   await mintTo(conn, principal, mint, vault, principal, CAP_TOTAL * USDC);
 
-  log("mandate live. vault funded with 50 USDC.");
-  return { principal, agent, merchant, scammer, mint, mandate, vault, merchantAta, scammerAta, ap2Hash: hash };
+  log(`mandate live · ap2_verified=${ap2Verified} · vault funded with 50 USDC.`);
+  return { principalPubkey: principal.publicKey, agent, merchant, scammer, mint, mandate, vault, merchantAta, scammerAta, ap2Hash: hash, ap2Verified };
+}
+
+/**
+ * Same demo, but the CONNECTED WALLET is the principal — it pays, opens the
+ * mandate, and ed25519-signs the AP2 intent via `signMessage`. Best run on a
+ * cluster where the wallet holds SOL (e.g. devnet). The agent stays an app
+ * burner (the AI's ephemeral wallet), funded by a transfer from your wallet.
+ */
+export async function setupDemoWithWallet(
+  conn: Connection,
+  wallet: WalletLike,
+  log: (s: string) => void,
+): Promise<DemoCtx> {
+  const principalPubkey = wallet.publicKey;
+  const agent = Keypair.generate();
+  const merchant = Keypair.generate();
+  const scammer = Keypair.generate();
+
+  log("creating a demo token (your wallet pays)…");
+  const mintKp = Keypair.generate();
+  const rent = await getMinimumBalanceForRentExemptMint(conn);
+  const mintTx = new Transaction().add(
+    SystemProgram.createAccount({
+      fromPubkey: principalPubkey,
+      newAccountPubkey: mintKp.publicKey,
+      space: MINT_SIZE,
+      lamports: rent,
+      programId: TOKEN_PROGRAM_ID,
+    }),
+    createInitializeMint2Instruction(mintKp.publicKey, 6, principalPubkey, null),
+  );
+  await conn.confirmTransaction(await wallet.sendTransaction(mintTx, conn, { signers: [mintKp] }), "confirmed");
+  const mint = mintKp.publicKey;
+
+  log("funding the agent wallet…");
+  await conn.confirmTransaction(
+    await wallet.sendTransaction(
+      new Transaction().add(
+        SystemProgram.transfer({
+          fromPubkey: principalPubkey,
+          toPubkey: agent.publicKey,
+          lamports: Math.floor(0.05 * LAMPORTS_PER_SOL),
+        }),
+      ),
+      conn,
+    ),
+    "confirmed",
+  );
+
+  const nonce = new BN(Math.floor(Date.now() / 1000) % 1_000_000);
+  const mandate = mandatePda(principalPubkey, nonce);
+  const vault = vaultPda(mandate);
+  const notAfter = new BN(Math.floor(Date.now() / 1000) + 3600);
+  const { message, hash } = await ap2({
+    agent: agent.publicKey.toBase58(),
+    maxPerTx: String(CAP_PER_TX * USDC),
+    merchants: [merchant.publicKey.toBase58()],
+    mint: mint.toBase58(),
+    nonce: nonce.toString(),
+    notAfter: notAfter.toNumber(),
+    principal: principalPubkey.toBase58(),
+    totalCap: String(CAP_TOTAL * USDC),
+  });
+
+  log("opening mandate — approve in your wallet…");
+  await programFromWallet(conn, wallet)
+    .methods.createMandate(nonce, agent.publicKey, new BN(CAP_PER_TX * USDC), new BN(CAP_TOTAL * USDC), notAfter, hash, [merchant.publicKey])
+    .accounts({ principal: principalPubkey, mint, mandate, vault, tokenProgram: TOKEN_PROGRAM_ID, systemProgram: SystemProgram.programId })
+    .rpc();
+
+  log("attesting AP2 signature — sign the intent in your wallet…");
+  let ap2Verified = false;
+  try {
+    if (!wallet.signMessage) throw new Error("wallet has no signMessage");
+    const signature = await wallet.signMessage(message);
+    const edIx = Ed25519Program.createInstructionWithPublicKey({ publicKey: principalPubkey.toBytes(), message, signature });
+    await programFromWallet(conn, wallet)
+      .methods.attestAp2()
+      .accounts({ principal: principalPubkey, mandate, instructionsSysvar: SYSVAR_INSTRUCTIONS_PUBKEY })
+      .preInstructions([edIx])
+      .rpc();
+    ap2Verified = true;
+  } catch {
+    /* best-effort: some wallets lack signMessage; the mandate still enforces */
+  }
+
+  log("funding vault + merchant accounts…");
+  const merchantAta = getAssociatedTokenAddressSync(mint, merchant.publicKey);
+  const scammerAta = getAssociatedTokenAddressSync(mint, scammer.publicKey);
+  await conn.confirmTransaction(
+    await wallet.sendTransaction(
+      new Transaction().add(
+        createAssociatedTokenAccountIdempotentInstruction(principalPubkey, merchantAta, merchant.publicKey, mint),
+        createAssociatedTokenAccountIdempotentInstruction(principalPubkey, scammerAta, scammer.publicKey, mint),
+        createMintToInstruction(mint, vault, principalPubkey, CAP_TOTAL * USDC),
+      ),
+      conn,
+    ),
+    "confirmed",
+  );
+
+  log(`mandate live · ap2_verified=${ap2Verified} · your wallet is the principal.`);
+  return { principalPubkey, agent, merchant, scammer, mint, mandate, vault, merchantAta, scammerAta, ap2Hash: hash, ap2Verified };
 }
 
 export interface SettleResult {

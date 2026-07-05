@@ -64,4 +64,13 @@ or on-chain `settle` revert) — no proof, no content, no funds moved.
 - **Reused:** the whole thesis + brand, the `withCapline` wrapper shape, the 3-scenario attack demo, the AP2/x402 framing.
 - **New for Solana:** the Anchor program (Rust rewrite), multi-dimensional AP2 enforcement (vs a single cap), and the plan to *consume* Solana's official Agent Registry (identity) and compose with the native allowance primitive rather than reimplement them.
 
+## Live on devnet
+
+Program `DRNWDxtJ3P5hQCdGcmL3XXMW9NtnE345HTaWkk9dUhHp` is deployed to **devnet** —
+[view on Solana Explorer](https://explorer.solana.com/address/DRNWDxtJ3P5hQCdGcmL3XXMW9NtnE345HTaWkk9dUhHp?cluster=devnet).
+The web app's Control Room has two paths: an **instant burner demo** (localnet,
+zero setup) and **"provision with my wallet"** (connect Phantom/Solflare, your
+wallet becomes the mandate principal and ed25519-signs the AP2 intent). Point the
+app at devnet via `NEXT_PUBLIC_CLUSTER=devnet` (see `web/.env.example`).
+
 Program ID (localnet/devnet): `DRNWDxtJ3P5hQCdGcmL3XXMW9NtnE345HTaWkk9dUhHp`

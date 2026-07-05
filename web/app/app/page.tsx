@@ -1,10 +1,12 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import { useWallet, useConnection } from "@solana/wallet-adapter-react";
 import { CapMeter } from "@/components/CapMeter";
-import { connection, explorer } from "@/lib/program";
+import { connection, explorer, type WalletLike } from "@/lib/program";
 import {
   setupDemo,
+  setupDemoWithWallet,
   settle,
   vaultBalance,
   CAP_PER_TX,
@@ -32,6 +34,34 @@ export default function ControlRoom() {
   const [busy, setBusy] = useState(false);
   const [injection, setInjection] = useState(PRESETS[0]);
   const [err, setErr] = useState<string>("");
+
+  const wallet = useWallet();
+  const { connection: walletConn } = useConnection();
+
+  const bootWallet = useCallback(async () => {
+    if (!wallet.publicKey || !wallet.signTransaction || !wallet.signAllTransactions) return;
+    setBooting(true);
+    setErr("");
+    setBootLog([]);
+    try {
+      const w: WalletLike = {
+        publicKey: wallet.publicKey,
+        signTransaction: wallet.signTransaction,
+        signAllTransactions: wallet.signAllTransactions,
+        signMessage: wallet.signMessage,
+        sendTransaction: (tx, conn, opts) =>
+          wallet.sendTransaction(tx, conn, opts as never),
+      };
+      const c = await setupDemoWithWallet(walletConn, w, (s) => setBootLog((l) => [...l, s]));
+      setCtx(c);
+      setSpent(0);
+      setRows([]);
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBooting(false);
+    }
+  }, [wallet, walletConn]);
 
   const boot = useCallback(async () => {
     setBooting(true);
@@ -84,13 +114,23 @@ export default function ControlRoom() {
 
       {!ctx && (
         <div className="mt-8 border-2 border-line bg-inset p-6">
-          <button
-            onClick={boot}
-            disabled={booting}
-            className="border-2 border-accent bg-accent px-6 py-3 font-mono text-xs font-medium uppercase tracking-[0.08em] text-accent-ink transition-colors hover:bg-bg hover:text-accent disabled:opacity-60"
-          >
-            {booting ? "Provisioning…" : "▶ Initialize live mandate"}
-          </button>
+          <div className="flex flex-wrap gap-3">
+            <button
+              onClick={boot}
+              disabled={booting}
+              className="border-2 border-accent bg-accent px-6 py-3 font-mono text-xs font-medium uppercase tracking-[0.08em] text-accent-ink transition-colors hover:bg-bg hover:text-accent disabled:opacity-60"
+            >
+              {booting ? "Provisioning…" : "▶ Instant demo (burner)"}
+            </button>
+            <button
+              onClick={bootWallet}
+              disabled={booting || !wallet.connected}
+              title={wallet.connected ? "Your connected wallet becomes the mandate principal" : "Connect a wallet first (top-right)"}
+              className="border-2 border-line-strong px-6 py-3 font-mono text-xs font-medium uppercase tracking-[0.08em] text-fg transition-colors hover:border-accent hover:text-accent disabled:opacity-40"
+            >
+              {wallet.connected ? "▶ Provision with my wallet" : "connect wallet to use as principal"}
+            </button>
+          </div>
           <div className="mt-4 space-y-1 font-mono text-[11px] text-dim">
             {bootLog.map((l, i) => (
               <div key={i}>
@@ -116,7 +156,17 @@ export default function ControlRoom() {
           {/* mandate summary */}
           <div className="mt-8 grid gap-4 md:grid-cols-2">
             <div className="border-2 border-line bg-raised p-5">
-              <p className="kicker text-safe">MANDATE // live</p>
+              <div className="flex items-center justify-between gap-2">
+                <p className="kicker text-safe">MANDATE // live</p>
+                {ctx.ap2Verified && (
+                  <span
+                    className="border border-safe px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-[0.08em] text-safe"
+                    title="The principal's ed25519 signature over the AP2 intent is verified on-chain"
+                  >
+                    ✓ AP2 signature verified
+                  </span>
+                )}
+              </div>
               <a
                 href={explorer(ctx.mandate.toBase58())}
                 target="_blank"
