@@ -242,6 +242,12 @@ await registry.createMandate(mandateId, {
             >
               Launch the dapp →
             </Link>
+            <Link
+              href="/agents"
+              className="border-2 border-accent-ink px-8 py-4 font-mono text-sm font-bold uppercase tracking-[0.08em] text-accent-ink transition-colors duration-75 hover:bg-accent-ink hover:text-accent"
+            >
+              Agent gallery →
+            </Link>
             <a
               href={GITHUB}
               target="_blank"
@@ -291,8 +297,8 @@ await registry.createMandate(mandateId, {
                 </FooterLink>
               </FooterCell>
               <FooterCell title="Product">
-                <FooterLink href="/app">Dashboard →</FooterLink>
-                <FooterLink href="/app">Attack →</FooterLink>
+                <FooterLink href="/app">Control Room →</FooterLink>
+                <FooterLink href="/agents">Agent Gallery →</FooterLink>
               </FooterCell>
               <FooterCell title="Chain" last>
                 <span className="font-mono text-xs text-dim">Solana</span>

@@ -1,0 +1,11 @@
+{
+  "network": "testnet",
+  "networkPassphrase": "Test SDF Network ; September 2015",
+  "contractId": "CAXVTUT64BWTPDH3DBSUPAIWCF2WNLXWZVWLT54DPQFFXHAFRU67CCXE",
+  "deployerAddress": "GBNZHDOOUC7FD6UCABYBMTS5JOFD3KXMJHTR2TGZYPES3B3V3P2GUGDM",
+  "wasmHash": "69b6d5db9488dd76883a323c9649dd093c7dfa50daf4825d04dabf92be7a4415",
+  "deployTx": "e26d488a91a04e46d910698ea0e5cb58de8e9b7c4955024669612e052d3a62cd",
+  "explorer": "https://stellar.expert/explorer/testnet/contract/CAXVTUT64BWTPDH3DBSUPAIWCF2WNLXWZVWLT54DPQFFXHAFRU67CCXE",
+  "sdk": "soroban-sdk 25.3.1",
+  "exportedFunctions": ["create_mandate", "fund", "settle", "revoke", "get_mandate"]
+}

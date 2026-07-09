@@ -100,7 +100,7 @@ export default function AgentGallery() {
         A fleet of agents. One leash.
       </h1>
       <p className="mt-3 max-w-2xl font-display text-dim">
-        Three autonomous agents, each with a real open-model brain and a wallet on a
+        Four autonomous agents, each with a real open-model brain and a wallet on a
         different chain — all sharing a single{" "}
         <span className="text-fg">{CAP_GLOBAL} USDC</span> mandate. Jailbreak them all you
         like. The per-tx cap, the payee allowlist, and the{" "}
@@ -177,7 +177,7 @@ export default function AgentGallery() {
               <span className="text-safe">remaining {remaining}</span>
             </div>
             {/* per-chain split */}
-            <div className="mt-4 grid gap-2 sm:grid-cols-3">
+            <div className="mt-4 grid gap-2 grid-cols-2 sm:grid-cols-4">
               {PERSONAS.map((p) => {
                 const c = chainCfg(p.chain);
                 const spent = status.perChain[p.chain] ?? 0;
@@ -204,7 +204,7 @@ export default function AgentGallery() {
           </div>
 
           {/* the fleet */}
-          <div className="mt-6 grid gap-4 lg:grid-cols-3">
+          <div className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             {PERSONAS.map((persona) => {
               const c = chainCfg(persona.chain);
               const log = rows.filter((r) => r.personaId === persona.id);

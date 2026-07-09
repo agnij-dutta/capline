@@ -118,10 +118,13 @@ export const CHAINS: Record<ChainId, ChainConfig> = {
     color: "#FDDA24",
     sigScheme: "ed25519",
     rpc: env("NEXT_PUBLIC_STELLAR_RPC", "https://soroban-testnet.stellar.org"),
-    mandate: env("NEXT_PUBLIC_STELLAR_MANDATE", ""), // Phase 2
-    usdc: "", // Soroban USDC SAC — Phase 2
+    mandate: env(
+      "NEXT_PUBLIC_STELLAR_MANDATE",
+      "CAXVTUT64BWTPDH3DBSUPAIWCF2WNLXWZVWLT54DPQFFXHAFRU67CCXE",
+    ),
+    usdc: "", // testnet SAC token wired at settle time
     usdcDecimals: 7, // Stellar assets are 7-decimal
-    live: false,
+    live: true,
     explorerTx: (s) => `https://stellar.expert/explorer/testnet/tx/${s}`,
     explorerAddr: (a) => `https://stellar.expert/explorer/testnet/account/${a}`,
   },
