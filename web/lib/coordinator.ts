@@ -12,8 +12,10 @@
 // authorizes each spend against the global remaining budget, and broadcasts
 // revocation to all chains.
 //
-// Phase 1 the transport is signed attestations over an in-memory ledger. The
-// `MandateTransport` seam below is Wormhole-swappable: Phase 2 replaces the
+// Persistence is a pluggable async Backend: an Upstash/Vercel-KV REST store when
+// KV_REST_API_URL + KV_REST_API_TOKEN are set (durable across serverless
+// instances), else an in-memory Map (fine for local + single-instance demos).
+// The `MandateTransport` seam is Wormhole-swappable: Phase 2 replaces the
 // AttestationTransport with real cross-chain messaging without touching the
 // authorize/commit/revoke logic.
 
@@ -49,6 +51,11 @@ export interface Ledger {
   reservations: Record<string, Reservation>;
 }
 
+interface Persisted {
+  mandate: CanonicalMandate;
+  ledger: Ledger;
+}
+
 export interface AuthTicket {
   ticketId: string;
   mandateId: string;
@@ -75,24 +82,68 @@ export type AuthDenyReason =
   | "PAYEE_NOT_ALLOWED"
   | "CHAIN_NOT_PROVISIONED";
 
-// --- pluggable store (in-memory now, Vercel KV later) -----------------------
+// --- pluggable persistence backend ------------------------------------------
 
-interface Store {
-  mandates: Map<string, CanonicalMandate>;
-  ledgers: Map<string, Ledger>;
+interface Backend {
+  get(mandateId: string): Promise<Persisted | undefined>;
+  set(mandateId: string, value: Persisted): Promise<void>;
 }
 
-// Module-level singleton. Survives within a warm serverless instance; a real
-// deployment swaps this for Vercel KV / a DB behind the same shape.
-const g = globalThis as unknown as { __caplineStore?: Store };
-const store: Store =
-  g.__caplineStore ??
-  (g.__caplineStore = { mandates: new Map(), ledgers: new Map() });
+class MemoryBackend implements Backend {
+  private map: Map<string, Persisted>;
+  constructor() {
+    // Survive HMR / warm-instance reuse via a global singleton.
+    const g = globalThis as unknown as { __caplineMem?: Map<string, Persisted> };
+    this.map = g.__caplineMem ?? (g.__caplineMem = new Map());
+  }
+  async get(id: string) {
+    return this.map.get(id);
+  }
+  async set(id: string, v: Persisted) {
+    this.map.set(id, v);
+  }
+}
+
+// Upstash / Vercel-KV REST. No SDK dependency — plain fetch against the REST API.
+// NOTE: read-modify-write is not atomic across truly-concurrent requests; for a
+// demo (sequential clicks) this is fine. Production hardening = an Upstash Lua
+// EVAL for the reserve step. Durability across instances is the win here.
+class KvRestBackend implements Backend {
+  constructor(private url: string, private token: string) {}
+  private async cmd(...args: (string | number)[]): Promise<unknown> {
+    const res = await fetch(this.url, {
+      method: "POST",
+      headers: { authorization: `Bearer ${this.token}`, "content-type": "application/json" },
+      body: JSON.stringify(args),
+    });
+    if (!res.ok) throw new Error(`kv ${args[0]} failed: ${res.status}`);
+    return (await res.json()).result;
+  }
+  async get(id: string) {
+    const raw = (await this.cmd("GET", `mandate:${id}`)) as string | null;
+    return raw ? (JSON.parse(raw) as Persisted) : undefined;
+  }
+  async set(id: string, v: Persisted) {
+    await this.cmd("SET", `mandate:${id}`, JSON.stringify(v));
+  }
+}
+
+function makeBackend(): Backend {
+  const url = process.env.KV_REST_API_URL;
+  const token = process.env.KV_REST_API_TOKEN;
+  if (url && token) return new KvRestBackend(url, token);
+  return new MemoryBackend();
+}
+
+const gb = globalThis as unknown as { __caplineBackend?: Backend };
+const backend: Backend = gb.__caplineBackend ?? (gb.__caplineBackend = makeBackend());
+
+/** Whether durable KV persistence is active (vs in-memory fallback). */
+export const isDurable = !!(process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN);
 
 // --- coordinator signing key ------------------------------------------------
-// One ed25519 key per process. Attestations are verifiable by anyone (the pub
-// key rides along on every ticket). An on-chain verifier could check these the
-// same way the Solana program already verifies AP2 signatures.
+// One ed25519 key per process. Attestations are self-describing (the pub key
+// rides on every ticket), so multi-instance signing keys verify independently.
 
 const gk = globalThis as unknown as { __caplineKey?: { pub: KeyObject; priv: KeyObject } };
 function coordinatorKey() {
@@ -120,17 +171,11 @@ export function sha256Hex(s: string): string {
 }
 
 function randId(prefix: string): string {
-  // Non-crypto id for tickets/mandates; uniqueness, not secrecy.
   return `${prefix}_${Date.now().toString(36)}${Math.floor(Math.random() * 1e9).toString(36)}`;
 }
 
-function ledgerOf(mandateId: string): Ledger {
-  let l = store.ledgers.get(mandateId);
-  if (!l) {
-    l = { committed: 0, perChain: {}, reservations: {} };
-    store.ledgers.set(mandateId, l);
-  }
-  // Sweep expired reservations so their budget frees up.
+/** Sweep expired reservations (mutates in place) so their budget frees up. */
+function sweep(l: Ledger): Ledger {
   const now = Date.now();
   for (const [id, r] of Object.entries(l.reservations)) {
     if (r.expiresAt < now) delete l.reservations[id];
@@ -146,15 +191,10 @@ function reserved(l: Ledger): number {
 // --- transport seam (Wormhole-swappable) ------------------------------------
 
 export interface MandateTransport {
-  /** Push a revocation to every chain the mandate lives on. */
   broadcastRevocation(m: CanonicalMandate): Promise<void>;
-  /** Reflect a committed spend delta to peers (no-op for in-memory). */
   syncSpend(mandateId: string, chain: ChainId, delta: number): Promise<void>;
 }
 
-// Phase 1: the coordinator IS the source of truth, so broadcasting is a logged
-// intent. Phase 2 swaps this for a WormholeTransport that emits VAAs the chains
-// verify. The authorize/commit/revoke logic below does not change.
 class AttestationTransport implements MandateTransport {
   async broadcastRevocation(m: CanonicalMandate): Promise<void> {
     // In a real deploy: submit revoke() to each chain's contract via a relayer.
@@ -170,18 +210,18 @@ export const transport: MandateTransport = new AttestationTransport();
 
 export interface CreateMandateInput {
   principal: string;
-  ap2Json: string; // canonical AP2 intent; hashed and committed
+  ap2Json: string;
   maxPerTx: number;
   maxCumulative: number;
   expiry?: number;
   allowedPayees?: string[];
   chains: ChainId[];
-  mandateId?: string; // caller may pin the id (mirrors on-chain createMandate)
+  mandateId?: string;
 }
 
-export function createMandate(input: CreateMandateInput): CanonicalMandate {
+export async function createMandate(input: CreateMandateInput): Promise<CanonicalMandate> {
   const mandateId = input.mandateId ?? randId("mandate");
-  const m: CanonicalMandate = {
+  const mandate: CanonicalMandate = {
     mandateId,
     principal: input.principal,
     ap2Hash: sha256Hex(input.ap2Json),
@@ -193,45 +233,38 @@ export function createMandate(input: CreateMandateInput): CanonicalMandate {
     createdAt: Date.now(),
     revoked: false,
   };
-  store.mandates.set(mandateId, m);
-  store.ledgers.set(mandateId, { committed: 0, perChain: {}, reservations: {} });
-  return m;
+  await backend.set(mandateId, { mandate, ledger: { committed: 0, perChain: {}, reservations: {} } });
+  return mandate;
 }
 
-export function getMandate(mandateId: string): CanonicalMandate | undefined {
-  return store.mandates.get(mandateId);
+export async function getMandate(mandateId: string): Promise<CanonicalMandate | undefined> {
+  return (await backend.get(mandateId))?.mandate;
 }
 
 /**
  * Authorize a proposed spend against the GLOBAL budget before it ever hits a
  * chain. Reserves the amount (so two chains can't both spend the last of the
- * budget concurrently) and returns a signed ticket the facilitator presents at
- * settle time. The on-chain contract still enforces its own local caps — this
- * is the layer above that, enforcing the one invariant spanning all chains.
+ * budget) and returns a signed ticket the facilitator presents at settle time.
  */
-export function authorize(
+export async function authorize(
   mandateId: string,
   chainId: ChainId,
   to: string,
   amount: number,
-): AuthResult {
-  const m = store.mandates.get(mandateId);
+): Promise<AuthResult> {
+  const p = await backend.get(mandateId);
   const now = Date.now();
-  if (!m) return { ok: false, reason: "MANDATE_MISSING", remaining: 0 };
+  if (!p) return { ok: false, reason: "MANDATE_MISSING", remaining: 0 };
 
-  const l = ledgerOf(mandateId);
+  const { mandate: m } = p;
+  const l = sweep(p.ledger);
   const remaining = Math.max(0, m.maxCumulative - l.committed - reserved(l));
 
   if (m.revoked) return { ok: false, reason: "REVOKED", remaining };
-  if (m.expiry !== 0 && now / 1000 > m.expiry)
-    return { ok: false, reason: "EXPIRED", remaining };
-  if (!m.chains.includes(chainId))
-    return { ok: false, reason: "CHAIN_NOT_PROVISIONED", remaining };
+  if (m.expiry !== 0 && now / 1000 > m.expiry) return { ok: false, reason: "EXPIRED", remaining };
+  if (!m.chains.includes(chainId)) return { ok: false, reason: "CHAIN_NOT_PROVISIONED", remaining };
   if (amount > m.maxPerTx) return { ok: false, reason: "OVER_PER_TX", remaining };
-  if (
-    m.allowedPayees.length > 0 &&
-    !m.allowedPayees.includes(to.toLowerCase())
-  )
+  if (m.allowedPayees.length > 0 && !m.allowedPayees.includes(to.toLowerCase()))
     return { ok: false, reason: "PAYEE_NOT_ALLOWED", remaining };
   // The cross-chain invariant: committed + already-reserved + this ≤ global cap.
   if (l.committed + reserved(l) + amount > m.maxCumulative)
@@ -240,41 +273,41 @@ export function authorize(
   const ticketId = randId("ticket");
   const expiresAt = now + 90_000; // 90s to settle or the budget frees again
   l.reservations[ticketId] = { ticketId, chain: chainId, to, amount, expiresAt };
-  const ticket = attest({
-    ticketId,
-    mandateId,
-    chain: chainId,
-    to,
-    amount,
-    issuedAt: now,
-    expiresAt,
-  });
+  await backend.set(mandateId, p);
+
+  const ticket = attest({ ticketId, mandateId, chain: chainId, to, amount, issuedAt: now, expiresAt });
   return { ok: true, ticket, remaining: remaining - amount };
 }
 
 /** Commit a reserved spend after the chain settle confirmed. */
-export function commit(mandateId: string, ticketId: string): boolean {
-  const l = ledgerOf(mandateId);
+export async function commit(mandateId: string, ticketId: string): Promise<boolean> {
+  const p = await backend.get(mandateId);
+  if (!p) return false;
+  const l = sweep(p.ledger);
   const r = l.reservations[ticketId];
   if (!r) return false;
   delete l.reservations[ticketId];
   l.committed += r.amount;
   l.perChain[r.chain] = (l.perChain[r.chain] ?? 0) + r.amount;
+  await backend.set(mandateId, p);
   void transport.syncSpend(mandateId, r.chain, r.amount);
   return true;
 }
 
 /** Release a reservation if the chain settle failed/was abandoned. */
-export function release(mandateId: string, ticketId: string): void {
-  const l = ledgerOf(mandateId);
-  delete l.reservations[ticketId];
+export async function release(mandateId: string, ticketId: string): Promise<void> {
+  const p = await backend.get(mandateId);
+  if (!p) return;
+  delete p.ledger.reservations[ticketId];
+  await backend.set(mandateId, p);
 }
 
 export async function revoke(mandateId: string): Promise<boolean> {
-  const m = store.mandates.get(mandateId);
-  if (!m) return false;
-  m.revoked = true;
-  await transport.broadcastRevocation(m);
+  const p = await backend.get(mandateId);
+  if (!p) return false;
+  p.mandate.revoked = true;
+  await backend.set(mandateId, p);
+  await transport.broadcastRevocation(p.mandate);
   return true;
 }
 
@@ -286,16 +319,16 @@ export interface MandateStatus {
   perChain: Record<string, number>;
 }
 
-export function status(mandateId: string): MandateStatus | undefined {
-  const m = store.mandates.get(mandateId);
-  if (!m) return undefined;
-  const l = ledgerOf(mandateId);
+export async function status(mandateId: string): Promise<MandateStatus | undefined> {
+  const p = await backend.get(mandateId);
+  if (!p) return undefined;
+  const l = sweep(p.ledger);
   const res = reserved(l);
   return {
-    mandate: m,
+    mandate: p.mandate,
     committed: l.committed,
     reserved: res,
-    remaining: Math.max(0, m.maxCumulative - l.committed - res),
+    remaining: Math.max(0, p.mandate.maxCumulative - l.committed - res),
     perChain: l.perChain,
   };
 }

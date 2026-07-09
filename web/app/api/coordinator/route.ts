@@ -20,7 +20,7 @@ export async function GET(req: Request) {
   const url = new URL(req.url);
   const mandateId = url.searchParams.get("mandateId");
   if (!mandateId) return Response.json({ error: "mandateId required" }, { status: 400 });
-  const s = status(mandateId);
+  const s = await status(mandateId);
   if (!s) return Response.json({ error: "MANDATE_MISSING" }, { status: 404 });
   return Response.json(s);
 }
@@ -29,8 +29,8 @@ export async function POST(req: Request) {
   const body = (await req.json()) as { action: string } & Record<string, unknown>;
   switch (body.action) {
     case "create": {
-      const m = createMandate(body as unknown as CreateMandateInput);
-      return Response.json({ mandate: m, status: status(m.mandateId) });
+      const m = await createMandate(body as unknown as CreateMandateInput);
+      return Response.json({ mandate: m, status: await status(m.mandateId) });
     }
     case "authorize": {
       const { mandateId, chain, to, amount } = body as unknown as {
@@ -39,26 +39,26 @@ export async function POST(req: Request) {
         to: string;
         amount: number;
       };
-      return Response.json(authorize(mandateId, chain, to, amount));
+      return Response.json(await authorize(mandateId, chain, to, amount));
     }
     case "commit": {
       const { mandateId, ticketId } = body as unknown as {
         mandateId: string;
         ticketId: string;
       };
-      return Response.json({ ok: commit(mandateId, ticketId), status: status(mandateId) });
+      return Response.json({ ok: await commit(mandateId, ticketId), status: await status(mandateId) });
     }
     case "release": {
       const { mandateId, ticketId } = body as unknown as {
         mandateId: string;
         ticketId: string;
       };
-      release(mandateId, ticketId);
+      await release(mandateId, ticketId);
       return Response.json({ ok: true });
     }
     case "revoke": {
       const { mandateId } = body as unknown as { mandateId: string };
-      return Response.json({ ok: await revoke(mandateId), status: status(mandateId) });
+      return Response.json({ ok: await revoke(mandateId), status: await status(mandateId) });
     }
     default:
       return Response.json({ error: `unknown action: ${body.action}` }, { status: 400 });

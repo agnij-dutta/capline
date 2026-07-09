@@ -29,10 +29,45 @@ import {
   getAssociatedTokenAddressSync,
 } from "@solana/spl-token";
 import { program, programFromWallet, mandatePda, vaultPda, BN, type WalletLike } from "./program";
+import type { AuthResult } from "./coordinator";
 
 const USDC = 1_000_000; // 6 decimals
 export const CAP_PER_TX = 5; // USDC
 export const CAP_TOTAL = 50; // USDC
+
+// --- cross-chain coordinator (Layer A) --------------------------------------
+// Best-effort client. Failures fail OPEN to the chain — Layer B (the on-chain
+// `settle`) is still the hard backstop, so the coordinator being unreachable
+// can never let an out-of-mandate payment through.
+async function coord<T>(action: string, body: Record<string, unknown>): Promise<T | null> {
+  try {
+    const res = await fetch("/api/coordinator", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ action, ...body }),
+    });
+    if (!res.ok) return null;
+    return (await res.json()) as T;
+  } catch {
+    return null;
+  }
+}
+
+/** Provision the canonical cross-chain mandate for this Control-Room session.
+ *  Left permissive on per-tx/payee so the ON-CHAIN program stays the enforcer
+ *  (and visible reverter) for those; the coordinator owns the global cap that
+ *  spans chains — the invariant no single chain can see. */
+async function provisionCoordinator(principal: string, ap2Json: string): Promise<string> {
+  const out = await coord<{ mandate: { mandateId: string } }>("create", {
+    principal,
+    ap2Json,
+    maxPerTx: CAP_TOTAL, // permissive: the chain enforces the 5-USDC per-tx cap
+    maxCumulative: CAP_TOTAL, // the shared global budget
+    chains: ["solana"],
+    allowedPayees: [], // permissive: the chain enforces the merchant allowlist
+  });
+  return out?.mandate.mandateId ?? "";
+}
 
 export interface DemoCtx {
   principalPubkey: PublicKey;
@@ -46,6 +81,8 @@ export interface DemoCtx {
   scammerAta: PublicKey;
   ap2Hash: number[];
   ap2Verified: boolean;
+  /** canonical cross-chain mandate id (coordinator); "" if unreachable. */
+  coordinatorId: string;
 }
 
 /** Canonical AP2 message bytes + its sha256 (the on-chain commitment). */
@@ -143,8 +180,14 @@ export async function setupDemo(
   ).address;
   await mintTo(conn, principal, mint, vault, principal, CAP_TOTAL * USDC);
 
+  log("registering with the cross-chain coordinator…");
+  const coordinatorId = await provisionCoordinator(
+    principal.publicKey.toBase58(),
+    new TextDecoder().decode(message),
+  );
+
   log(`mandate live · ap2_verified=${ap2Verified} · vault funded with 50 USDC.`);
-  return { principalPubkey: principal.publicKey, agent, merchant, scammer, mint, mandate, vault, merchantAta, scammerAta, ap2Hash: hash, ap2Verified };
+  return { principalPubkey: principal.publicKey, agent, merchant, scammer, mint, mandate, vault, merchantAta, scammerAta, ap2Hash: hash, ap2Verified, coordinatorId };
 }
 
 /**
@@ -246,8 +289,14 @@ export async function setupDemoWithWallet(
     "confirmed",
   );
 
+  log("registering with the cross-chain coordinator…");
+  const coordinatorId = await provisionCoordinator(
+    principalPubkey.toBase58(),
+    new TextDecoder().decode(message),
+  );
+
   log(`mandate live · ap2_verified=${ap2Verified} · your wallet is the principal.`);
-  return { principalPubkey, agent, merchant, scammer, mint, mandate, vault, merchantAta, scammerAta, ap2Hash: hash, ap2Verified };
+  return { principalPubkey, agent, merchant, scammer, mint, mandate, vault, merchantAta, scammerAta, ap2Hash: hash, ap2Verified, coordinatorId };
 }
 
 export interface SettleResult {
@@ -264,6 +313,25 @@ export async function settle(
 ): Promise<SettleResult> {
   const merchant = target === "merchant" ? ctx.merchant.publicKey : ctx.scammer.publicKey;
   const merchantAta = target === "merchant" ? ctx.merchantAta : ctx.scammerAta;
+
+  // Layer A — cross-chain global cap. If this spend would breach the shared
+  // budget across chains, refuse before spending gas (the on-chain program
+  // can't see spend on other chains; the coordinator can). Best-effort: if the
+  // coordinator is unreachable we fall through to Layer B, which still enforces.
+  let ticketId: string | undefined;
+  if (ctx.coordinatorId) {
+    const auth = await coord<AuthResult>("authorize", {
+      mandateId: ctx.coordinatorId,
+      chain: "solana",
+      to: merchant.toBase58(),
+      amount: amountUsdc,
+    });
+    if (auth && auth.ok === false && auth.reason === "OVER_GLOBAL_CAP") {
+      return { ok: false, error: "GlobalCapExceeded" };
+    }
+    if (auth && auth.ok) ticketId = auth.ticket.ticketId;
+  }
+
   try {
     const sig = await program(conn, ctx.agent)
       .methods.settle(new BN(Math.round(amountUsdc * USDC)))
@@ -276,8 +344,12 @@ export async function settle(
         tokenProgram: TOKEN_PROGRAM_ID,
       })
       .rpc();
+    // Layer B accepted → commit the reserved spend to the global ledger.
+    if (ctx.coordinatorId && ticketId) await coord("commit", { mandateId: ctx.coordinatorId, ticketId });
     return { ok: true, sig };
   } catch (e: unknown) {
+    // Layer B reverted → release the reservation so the global budget isn't leaked.
+    if (ctx.coordinatorId && ticketId) await coord("release", { mandateId: ctx.coordinatorId, ticketId });
     const msg = e instanceof Error ? e.message : String(e);
     const m = /Error Code: (\w+)/.exec(msg) || /(PerTxCapExceeded|TotalCapExceeded|MerchantNotAllowed|MandateRevoked|MandateExpired)/.exec(msg);
     return { ok: false, error: m ? m[1] : msg.slice(0, 140) };
