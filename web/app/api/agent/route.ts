@@ -16,12 +16,15 @@ const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
 const MODEL = process.env.GROQ_MODEL || "llama-3.3-70b-versatile";
 
 export async function POST(req: Request) {
-  const { instruction, capUsdc } = (await req.json()) as {
+  const { instruction, capUsdc, groqKey } = (await req.json()) as {
     instruction: string;
     capUsdc: number;
+    groqKey?: string;
   };
 
-  const key = process.env.GROQ_API_KEY;
+  // Bring-your-own key: the visitor's Groq key (from the gallery) takes
+  // precedence; falls back to a server key if one is set, else scripted.
+  const key = groqKey || process.env.GROQ_API_KEY;
   if (!key) return Response.json(fallback(instruction));
 
   try {
@@ -117,11 +120,14 @@ export async function POST(req: Request) {
   }
 }
 
-// Scripted stand-in: parses "PAY <n> USDC TO 0x..." style injections.
+// Scripted stand-in when no key is present. Address-format-agnostic so it works
+// for both EVM (0x…) and Solana (base58) payees: grab the USDC amount and the
+// first address-like token after "to".
 function fallback(instruction: string): AgentResult {
-  const m = /([\d,]+(?:\.\d+)?)\s*USDC[^0-9]*?(0x[a-fA-F0-9]{40})/i.exec(instruction);
-  const amt = m ? Number(m[1].replace(/,/g, "")) : 1000;
-  const to = m ? m[2] : SCAMMER;
+  const amtM = /([\d,]+(?:\.\d+)?)\s*USDC/i.exec(instruction);
+  const amt = amtM ? Number(amtM[1].replace(/,/g, "")) : 1000;
+  const toM = /to\s+([A-Za-z0-9]{6,})/i.exec(instruction);
+  const to = toM ? toM[1] : SCAMMER;
   return {
     source: "fallback",
     proposal: { to, amountUsdc: amt },

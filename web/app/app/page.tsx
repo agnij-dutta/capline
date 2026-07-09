@@ -3,7 +3,7 @@
 import { useState, useCallback } from "react";
 import { useWallet, useConnection } from "@solana/wallet-adapter-react";
 import { CapMeter } from "@/components/CapMeter";
-import { connection, explorer, type WalletLike } from "@/lib/program";
+import { connection, explorer, CLUSTER, type WalletLike } from "@/lib/program";
 import {
   setupDemo,
   setupDemoWithWallet,
@@ -116,19 +116,20 @@ export default function ControlRoom() {
         <div className="mt-8 border-2 border-line bg-inset p-6">
           <div className="flex flex-wrap gap-3">
             <button
-              onClick={boot}
-              disabled={booting}
-              className="border-2 border-accent bg-accent px-6 py-3 font-mono text-xs font-medium uppercase tracking-[0.08em] text-accent-ink transition-colors hover:bg-bg hover:text-accent disabled:opacity-60"
-            >
-              {booting ? "Provisioning…" : "▶ Instant demo (burner)"}
-            </button>
-            <button
               onClick={bootWallet}
               disabled={booting || !wallet.connected}
               title={wallet.connected ? "Your connected wallet becomes the mandate principal" : "Connect a wallet first (top-right)"}
-              className="border-2 border-line-strong px-6 py-3 font-mono text-xs font-medium uppercase tracking-[0.08em] text-fg transition-colors hover:border-accent hover:text-accent disabled:opacity-40"
+              className="border-2 border-accent bg-accent px-6 py-3 font-mono text-xs font-medium uppercase tracking-[0.08em] text-accent-ink transition-colors hover:bg-bg hover:text-accent disabled:opacity-40"
             >
               {wallet.connected ? "▶ Provision with my wallet" : "connect wallet to use as principal"}
+            </button>
+            <button
+              onClick={boot}
+              disabled={booting || CLUSTER === "devnet"}
+              title={CLUSTER === "devnet" ? "Burner demo needs airdrops — run locally against a validator" : "Zero-setup demo using throwaway keypairs"}
+              className="border-2 border-line-strong px-6 py-3 font-mono text-xs font-medium uppercase tracking-[0.08em] text-fg transition-colors hover:border-accent hover:text-accent disabled:opacity-40"
+            >
+              {booting ? "Provisioning…" : CLUSTER === "devnet" ? "instant burner demo (localnet only)" : "▶ Instant demo (burner)"}
             </button>
           </div>
           <div className="mt-4 space-y-1 font-mono text-[11px] text-dim">
