@@ -14,3 +14,6 @@ pnpm-lock.yaml
 
 # SDK build output (published to npm, not needed in git)
 sdk/dist/
+
+# MCP build output
+mcp/dist/
