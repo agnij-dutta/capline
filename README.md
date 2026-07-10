@@ -1,12 +1,25 @@
 # CAPLINE
 
-### On-chain spend authority for AI agents.
+### Cross-chain spend authority for AI agents.
 
-**Jailbreak the model all you want. It still can't pay over its on-chain mandate.**
+**Jailbreak the model all you want. It still can't pay over its signed mandate.**
 
 > The cap isn't in the prompt. It's a contract the LLM can't talk to.
 
-**[▶ Live demo + attack console](https://capline-protocol.vercel.app)** · **[Contract on Snowtrace](https://testnet.snowtrace.io/address/0x40367742b16c3DDa51B123751699032c5E446aF5)** · Avalanche Fuji · x402 + ERC-8004
+**[▶ Live demo](https://capline-protocol.vercel.app)** · **[🤖 Agent gallery](https://capline-protocol.vercel.app/agents)** · **[📦 `npm i capline`](https://www.npmjs.com/package/capline)** · Solana · Avalanche · Stellar · x402 + AP2
+
+---
+
+## See it stop a jailbreak — clone and run, no funds
+
+![An AI agent gets jailbroken and still can't overspend](examples/agent/attack.gif)
+
+```bash
+git clone https://github.com/agnij-dutta/capline && cd capline/examples/agent
+npm install && npm run attack
+```
+
+A real AI agent with one payment tool and a `$5/tx · $20 total` mandate. Try to jailbreak it into overspending — every attack is refused in your terminal, **zero on-chain funds required**. → [`examples/agent`](examples/agent)
 
 ---
 
@@ -23,7 +36,7 @@ Capline moves the limit **out of the prompt and onto the chain.** A principal gr
 ## Add it in 10 seconds
 
 ```ts
-import { withCapline } from "capline";
+import { withCapline } from "capline/evm";
 
 // the agent's brain calls this. it holds NO key.
 const xPayment = await withCapline({ signer, mandateId }).pay(paymentRequirements);
@@ -31,7 +44,7 @@ const xPayment = await withCapline({ signer, mandateId }).pay(paymentRequirement
 //   throws MandateExceeded otherwise. the agent physically cannot overspend.
 ```
 
-No model changes. One wrapper around your existing x402 client.
+No model changes. One wrapper around your existing x402 client. Also `capline/solana`, `capline/coordinator` (the cross-chain global cap), and `capline` (chains + AP2 hashing).
 
 ## It's live on Avalanche Fuji
 
@@ -104,12 +117,15 @@ npm run test:contracts   # 16/16 the caps revert (per-tx, cumulative, revoke, ex
 
 | Path | What |
 |---|---|
-| `contracts/` | Foundry. `MandateRegistry.sol` (the primitive) + minimal ERC-8004 `IdentityRegistry.sol` + tests + Fuji deploy script. |
-| `src/` | The TypeScript SDK + local demo: `signer.ts` (Layer A), `withCapline.ts` (the adopt API), `seller.ts` (x402 quote + facilitator), `agent.ts` (a deliberately gullible brain), `demo.ts`. |
-| `web/` | Next.js landing + dapp (the live site). The interactive attack console lives in `components/AttackConsole.tsx`. |
-| `marketing/` | Launch thread, demo-video script, announcement-graphic prompts. |
+| `sdk/` | The published **`capline`** npm package. Subpath exports: `capline`, `capline/coordinator`, `capline/evm`, `capline/solana`. |
+| `examples/agent/` | **Clone-and-run reference agent** (the GIF above). Real Groq brain + one payment tool, gated by a mandate. Zero funds. |
+| `contracts/` | Foundry (EVM). `MandateRegistry.sol` (the primitive) + minimal ERC-8004 `IdentityRegistry.sol` + tests + deploy script. |
+| `solana/` | Anchor program (Solana). `create_mandate` / `settle` / `revoke` / on-chain ed25519 AP2 attestation. LiteSVM tests. |
+| `soroban/` | Soroban contract (Stellar). Mirrors the enforcement primitive; deployed to testnet. |
+| `web/` | Next.js landing + Control Room + the **cross-chain agent gallery** (`/agents`) + the coordinator API (`/api/coordinator`). |
+| `src/` | Original EVM TS SDK + local `npm run demo` (anvil). |
 
-Payments use the real **x402 v1.2.0** wire format (signed EIP-3009 `X-PAYMENT` headers); the SDK is not yet published to npm, so install from source for now.
+Payments use the real **x402 v1.2.0** wire format (signed EIP-3009 `X-PAYMENT` headers). **The SDK is published:** `npm i capline`.
 
 ## Deploy your own to Fuji
 
