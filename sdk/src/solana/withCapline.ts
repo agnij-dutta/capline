@@ -10,11 +10,16 @@
 // compromised key signs directly, the chain reverts.
 import type { Program, BN as AnchorBN } from "@coral-xyz/anchor";
 // Anchor is CJS; default-import interop keeps `capline/solana` usable in raw
-// node ESM (a bare `import { BN }` throws "Named export not found").
-import anchor from "@coral-xyz/anchor";
+// node ESM (a bare `import { BN }` throws "Named export not found"). When a
+// consumer's toolchain compiles this file back to CJS, the default import comes
+// through as the namespace with `default` on it (or undefined), so fall back.
+import * as anchorNs from "@coral-xyz/anchor";
 import { PublicKey, type TransactionSignature } from "@solana/web3.js";
 import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
 
+type AnchorModule = typeof import("@coral-xyz/anchor");
+const anchor: AnchorModule =
+  (anchorNs as unknown as { default?: AnchorModule }).default ?? (anchorNs as AnchorModule);
 const { BN } = anchor;
 
 export class MandateExceeded extends Error {
