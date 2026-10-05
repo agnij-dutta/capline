@@ -1,5 +1,7 @@
 # CAPLINE
 
+[![npm](https://img.shields.io/npm/v/capline)](https://www.npmjs.com/package/capline)
+
 ### Cross-chain spend authority for AI agents.
 
 **Jailbreak the model all you want. It still can't pay over its signed mandate.**

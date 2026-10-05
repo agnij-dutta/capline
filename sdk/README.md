@@ -1,5 +1,7 @@
 # capline
 
+[![npm](https://img.shields.io/npm/v/capline)](https://www.npmjs.com/package/capline)
+
 **Cross-chain spend authority for AI agents.**
 
 The cap isn't in the prompt — it's a contract the LLM can't talk to.
