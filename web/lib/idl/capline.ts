@@ -468,6 +468,19 @@ export type Capline = {
         145,
         238
       ]
+    },
+    {
+      "name": "withdrawn",
+      "discriminator": [
+        20,
+        89,
+        223,
+        198,
+        194,
+        124,
+        219,
+        13
+      ]
     }
   ],
   "errors": [
@@ -550,6 +563,16 @@ export type Capline = {
       "code": 6015,
       "name": "ap2HashMismatch",
       "msg": "signed message does not match the committed AP2 hash"
+    },
+    {
+      "code": 6016,
+      "name": "zeroAmount",
+      "msg": "amount must be greater than zero"
+    },
+    {
+      "code": 6017,
+      "name": "ap2ProofNotSelfContained",
+      "msg": "Ed25519 instruction must reference its own data (instruction index u16::MAX)"
     }
   ],
   "types": [
@@ -716,6 +739,26 @@ export type Capline = {
           },
           {
             "name": "spent",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "withdrawn",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "mandate",
+            "type": "pubkey"
+          },
+          {
+            "name": "to",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
             "type": "u64"
           }
         ]
