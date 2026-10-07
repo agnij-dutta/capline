@@ -36,9 +36,11 @@ export const CAP_PER_TX = 5; // USDC
 export const CAP_TOTAL = 50; // USDC
 
 // --- cross-chain coordinator (Layer A) --------------------------------------
-// Best-effort client. Failures fail OPEN to the chain — Layer B (the on-chain
-// `settle`) is still the hard backstop, so the coordinator being unreachable
-// can never let an out-of-mandate payment through.
+// Best-effort client. If the coordinator is UNREACHABLE we fail open to the
+// chain: Layer B (the on-chain `settle`) still enforces this chain's caps, so
+// no out-of-mandate payment gets through on this chain. What is lost while it
+// is down is only the cross-chain global cap (here the coordinator budget
+// equals the on-chain total_cap on a single chain, so nothing is lost).
 async function coord<T>(action: string, body: Record<string, unknown>): Promise<T | null> {
   try {
     const res = await fetch("/api/coordinator", {
@@ -326,6 +328,14 @@ export async function settle(
       to: merchant.toBase58(),
       amount: amountUsdc,
     });
+    // Honour the coordinator's budget-level denies. Per-tx and payee denies
+    // are deliberately left to the chain (the visible on-chain revert is the
+    // demo), and MANDATE_MISSING is treated like "unreachable" because a
+    // non-durable (in-memory) coordinator can lose state between serverless
+    // instances.
+    if (auth && auth.ok === false && (auth.reason === "REVOKED" || auth.reason === "EXPIRED")) {
+      return { ok: false, error: auth.reason };
+    }
     if (auth && auth.ok === false && auth.reason === "OVER_GLOBAL_CAP") {
       return { ok: false, error: "GlobalCapExceeded" };
     }
