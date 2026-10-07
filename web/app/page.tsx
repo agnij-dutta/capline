@@ -142,14 +142,15 @@ export default function Landing() {
             <LayerCard
               tag="LAYER B · ON-CHAIN"
               title="MandateRegistry.settle()"
-              body="The contract re-checks every cap and reverts CapExceeded before USDC moves. Holds even if the signing key is stolen."
+              body="The contract re-checks every cap and reverts CapExceeded before USDC moves, for every settlement routed through the mandate."
               foot="the chain says no"
               accent
             />
           </div>
           <p className="mx-auto mt-8 max-w-2xl text-center font-display text-dim">
-            Even if the signing key is stolen, the contract still reverts. That&apos;s
-            the difference between a guardrail and a{" "}
+            On Solana and Stellar the money sits in a program-owned vault, so even a
+            stolen agent key can&apos;t spend past the mandate. That&apos;s the
+            difference between a guardrail and a{" "}
             <span className="text-fg">guarantee</span>.
           </p>
         </div>

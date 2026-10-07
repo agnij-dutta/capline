@@ -12,7 +12,7 @@
 
 ---
 
-## See it stop a jailbreak — clone and run, no funds
+## See it stop a jailbreak: clone and run, no funds
 
 ![An AI agent gets jailbroken and still can't overspend](examples/agent/attack.gif)
 
@@ -21,7 +21,7 @@ git clone https://github.com/agnij-dutta/capline && cd capline/examples/agent
 npm install && npm run attack
 ```
 
-A real AI agent with one payment tool and a `$5/tx · $20 total` mandate. Try to jailbreak it into overspending — every attack is refused in your terminal, **zero on-chain funds required**. → [`examples/agent`](examples/agent)
+A real AI agent with one payment tool and a `$5/tx · $20 total` mandate. Try to jailbreak it into overspending, every attack is refused in your terminal, **zero on-chain funds required**. → [`examples/agent`](examples/agent)
 
 ---
 
@@ -88,14 +88,21 @@ The [live dapp](https://capline-protocol.vercel.app/app) lets you grant a mandat
   │  settle() REVERTS if over  │    └─────────┬─────────┘
   └────────────▲──────────────┘              │ x402 payment (EIP-3009)
      LAYER B   │                             ▼
-  on-chain,    └──────────── settle ──── Facilitator → USDC moves
-  even if the key is stolen
+  on-chain     └──────────── settle ──── Facilitator → USDC moves
 ```
 
 **Two layers, both real:**
 
-- **Layer A, the Constrained Signer.** A process that holds the agent's key (the brain doesn't). It reads the mandate and signs the EIP-3009 authorization *only* if `value <= maxPerTx`, the payee is allowed, and the cumulative cap holds. Its logic compares numbers; no prompt changes `1000 > 5`.
-- **Layer B, the on-chain backstop.** `MandateRegistry.settle()` re-checks every cap and **reverts** before USDC moves, so the mandate holds **even if the signing key itself is stolen.** That revert, on a public chain, is the unfakeable proof.
+- **Layer A, the Constrained Signer.** A process that holds the agent's key (the brain doesn't). It reads the mandate and signs the EIP-3009 authorization *only* if `value <= maxPerTx`, the payee is allowed, and the cumulative cap holds, counting every authorization it has already signed. Its logic compares numbers; no prompt changes `1000 > 5`.
+- **Layer B, the on-chain backstop.** `settle` re-checks every cap and **reverts** before the money moves. How far that reaches depends on where the money sits:
+
+| | Funds held by | A stolen agent key can... |
+|---|---|---|
+| **Solana** | a vault owned by the mandate PDA | only call `settle`, so at most the remaining budget, to allowlisted merchants |
+| **Stellar** | the mandate contract | only call `settle`, same bound |
+| **EVM** (Avalanche, Base) | the agent's own wallet | move that wallet's USDC directly, bypassing the registry |
+
+On EVM the registry binds settlements routed through it, and Layer A is what keeps signed authorizations in bounds. Fund the EVM agent wallet with no more than the mandate's budget. An escrow-based EVM registry that closes this gap is the planned v2. Details, and every other finding from the independent review: **[SECURITY.md](SECURITY.md)**.
 
 ## Try the jailbreak locally (about 60 seconds)
 
@@ -109,10 +116,11 @@ Boots a local EVM (anvil), deploys the contracts, and runs three scenarios on a 
 
 1. **Legitimate purchase.** Agent buys data for 5 USDC, settles on-chain. ✓
 2. **No Capline.** A naive agent reads a poisoned resource and gets drained of 1000 USDC. ✗
-3. **With Capline.** *Identical attack*, defeated twice: the signer refuses (Layer A), and even a stolen key is reverted on-chain with `CapExceeded` (Layer B). ✓
+3. **With Capline.** *Identical attack*, defeated twice: the signer refuses (Layer A), and a 1000 USDC authorization signed with the stolen key and settled through the mandate is reverted on-chain with `CapExceeded` (Layer B). ✓ (On EVM a stolen key could also skip the registry and move the wallet's USDC directly; see the table above.)
 
 ```bash
-npm run test:contracts   # 16/16 the caps revert (per-tx, cumulative, revoke, expiry, payee)
+npm run test:contracts   # 22 forge tests: 16 behavior (per-tx, cumulative, revoke, expiry, payee)
+                         # + 6 that pin the known EVM limitations (SECURITY.md)
 ```
 
 ## Repo layout
@@ -125,9 +133,23 @@ npm run test:contracts   # 16/16 the caps revert (per-tx, cumulative, revoke, ex
 | `solana/` | Anchor program (Solana). `create_mandate` / `settle` / `revoke` / on-chain ed25519 AP2 attestation. LiteSVM tests. |
 | `soroban/` | Soroban contract (Stellar). Mirrors the enforcement primitive; deployed to testnet. |
 | `web/` | Next.js landing + Control Room + the **cross-chain agent gallery** (`/agents`) + the coordinator API (`/api/coordinator`). |
-| `src/` | Original EVM TS SDK + local `npm run demo` (anvil). |
+| `mcp/` | The published **`capline-mcp`** server (pinned mode for real agents, demo mode for trying it). |
+| `src/` | Original EVM TS SDK + local `npm run demo` (anvil). Demo code; the maintained SDK is `sdk/`. |
 
 Payments use the real **x402 v1.2.0** wire format (signed EIP-3009 `X-PAYMENT` headers). **The SDK is published:** `npm i capline`.
+
+## Tests
+
+| Component | Command | Tests |
+|---|---|---|
+| Solana program | `cd solana && anchor build --ignore-keys && cargo test --release` | 15 LiteSVM + 1 unit |
+| EVM contracts | `cd contracts && forge test` | 22 |
+| Soroban contract | `cd soroban && cargo test` | 8 |
+| SDK | `cd sdk && npm test` | 16 |
+| Coordinator | `cd web && npx tsx lib/coordinator.smoke.ts` | 44 checks |
+| MCP server | `cd mcp && npm test` | 3 |
+
+CI runs all of them (`.github/workflows/ci.yml`). See [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md) and [CHANGELOG.md](CHANGELOG.md).
 
 ## Deploy your own to Fuji
 

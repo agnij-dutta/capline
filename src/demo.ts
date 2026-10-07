@@ -225,6 +225,8 @@ async function main() {
       }
       console.log(c.green("  ✓ LAYER B (on-chain): ") + c.red("REVERTED") + c.dim(`  ${reason}()  — the mandate cap, enforced by the chain`));
       console.log(c.dim("    the chain rejected it. the scammer got nothing — even with the key."));
+      console.log(c.dim("    caveat (EVM): this binds settlements routed through the registry. A stolen key can still"));
+      console.log(c.dim("    move the agent wallet's own USDC directly; see SECURITY.md C-1 / C-2 (Solana and Stellar escrow, EVM does not yet)."));
     }
     console.log(c.dim("    scammer balance (protected agent contributed nothing): ") + c.green(`${await bal(SCAMMER)} USDC`));
 

@@ -12,10 +12,10 @@ npm run dev      # http://localhost:3000
 ```
 
 ## Routes
-- `/` — landing. Hero, the insight, the 2-layer model, the interactive **AttackConsole** (jailbreak → refuse → on-chain revert), the 10-second adopt snippet.
-- `/app` — dashboard: live on-chain mandate cards with cap-meters + revoke.
-- `/app/create` — grant a scoped mandate to an ERC-8004 agent (with an inline identity-register helper).
-- `/app/attack` — the AttackConsole + a **live `checkAllowance()` read** against the deployed contract on Fuji.
+- `/`: landing. Hero, the insight, the 2-layer model, the interactive **AttackConsole** (jailbreak → refuse → on-chain revert), the 10-second adopt snippet.
+- `/app`: dashboard: live on-chain mandate cards with cap-meters + revoke.
+- `/app/create`: grant a scoped mandate to an ERC-8004 agent (with an inline identity-register helper).
+- `/app/attack`: the AttackConsole + a **live `checkAllowance()` read** against the deployed contract on Fuji.
 
 ## Config
 Contract addresses come from `lib/deployments.json` (copied from `../deployments/fuji.json`). After a fresh Fuji deploy, re-copy it:

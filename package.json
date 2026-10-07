@@ -1,9 +1,10 @@
 {
   "name": "capline",
   "version": "0.1.0",
+  "private": true,
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "npm run test:contracts",
     "demo": "tsx src/demo.ts",
     "build:contracts": "cd contracts && forge build",
     "test:contracts": "cd contracts && forge test"
