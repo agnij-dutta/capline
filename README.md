@@ -179,7 +179,7 @@ Built on [x402](https://github.com/coinbase/x402) + [ERC-8004](https://eips.ethe
 - **Upgrade authority** on a multisig, or an immutable program, before any mainnet deploy (M-2).
 - **`close_mandate`** on Solana to reclaim rent.
 
-The fixes from the October 2026 review are in the repo but not yet deployed: see [docs/UPGRADE-PLAN.md](docs/UPGRADE-PLAN.md).
+The fixes from the October 2026 review shipped on 2026-10-07 (Solana devnet program upgraded in place, web redeployed, `capline` and `capline-mcp` 0.2.0 on npm), except the Soroban fixes, which need a new contract id. Per-component status is in [SECURITY.md](SECURITY.md#deployment-status-updated-2026-10-07).
 
 ## License and author
 
