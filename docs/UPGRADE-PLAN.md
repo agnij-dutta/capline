@@ -116,3 +116,25 @@ Verify before deploying: `cd web && npx tsc --noEmit && npx tsx lib/coordinator.
 cd sdk && npm test && npm run build && npm version minor && npm publish
 cd ../mcp && npm test && npm run build && npm version minor && npm publish
 ```
+
+## 3. Upgrade authority: 2-of-3 multisig (done 2026-10-07)
+
+The devnet program's upgrade authority is the vault of a Squads v4 multisig, not a single key.
+
+| | Address |
+|---|---|
+| Multisig | `GRBBcirMUrykvcMx2xNKTyTCh7gu7pvKmxt4JevfQwXy` |
+| Vault (the upgrade authority) | `Eh4PGgC81KSek38h9SVvKMQuJTXPDTHGmu6TE7kFPEx1` |
+| Threshold | 2 of 3, no time lock, no separate config authority (membership changes also need 2 of 3) |
+| Members | `J2GeZ1D4s2zivFEhgpfrV26DBDGCfrdUqruFpybqgDH9` (deployer), `iJUv5HxvwXFZaGeNDEG1DCNWYNfLQke8SBGvkrKYP2u` (browser wallet), `MVMU6KHTU4j4Z4HMKNk6h8KY9KGX1o7xZViBCuWXEUg` (offline backup) |
+
+Verified on 2026-10-07: `solana program deploy` signed by the deployer key alone fails with "Program's authority ... does not match authority provided", and an upgrade proposal executed through the multisig after two approvals (one approval was rejected first).
+
+How to upgrade from now on:
+
+```bash
+solana program write-buffer target/deploy/capline.so -u devnet
+solana program set-buffer-authority <BUFFER> --new-buffer-authority Eh4PGgC81KSek38h9SVvKMQuJTXPDTHGmu6TE7kFPEx1 -u devnet
+```
+
+Then create a vault transaction for the BPF Loader Upgradeable `Upgrade` instruction (accounts: program data, program, buffer, spill, rent sysvar, clock sysvar, vault as authority), get two member approvals, and execute it. The Squads web app (devnet) or the `@sqds/multisig` SDK can both do this.

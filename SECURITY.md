@@ -21,7 +21,7 @@ The threat model is a jailbroken model and, as the stronger case, a stolen agent
 | **EVM** | the agent's own wallet | bounded by Layer A (the SDK's `ConstrainedSigner`) | **not bounded**: the key controls the wallet (C-2) |
 | **Cross-chain cap** | n/a (off-chain ledger) | bounded if the agent routes through the coordinator | **not bounded** beyond each chain's own caps (H-2) |
 
-Known non-goals: protecting against a compromised principal key, against the program upgrade authority (M-2), or against an allowlisted merchant colluding with a stolen agent key inside the mandate's limits.
+Known non-goals: protecting against a compromised principal key, against a quorum of the upgrade multisig's members (M-2), or against an allowlisted merchant colluding with a stolen agent key inside the mandate's limits.
 
 ## Independent review, October 2026
 
@@ -31,7 +31,7 @@ Reviewed commit `eebbbed` (the code live on devnet, Fuji and Stellar testnet at 
 
 | Component | Status |
 |---|---|
-| Solana program (devnet `DRNWDxtJ3P5hQCdGcmL3XXMW9NtnE345HTaWkk9dUhHp`) | **Upgraded in place** on 2026-10-07 to the program code from commit `a686e30` (slot 508428919). The deployed bytes are byte-identical to a build of that commit (sha256 `36e1e70b27cbc159ac9598cde6e8bbbc23a043a1757bd7ffecc8f481d094f9aa`). L-1, L-4 and L-9 are fixed in the live program. Same program id and account layout, so existing mandates keep working. The upgrade authority is **unchanged** (`J2GeZ1...gDH9`), so M-2 is still open. |
+| Solana program (devnet `DRNWDxtJ3P5hQCdGcmL3XXMW9NtnE345HTaWkk9dUhHp`) | **Upgraded in place** on 2026-10-07 to the program code from commit `a686e30` (slot 508428919). The deployed bytes are byte-identical to a build of that commit (sha256 `36e1e70b27cbc159ac9598cde6e8bbbc23a043a1757bd7ffecc8f481d094f9aa`). L-1, L-4 and L-9 are fixed in the live program. Same program id and account layout, so existing mandates keep working. The upgrade authority was then moved to a 2-of-3 Squads v4 multisig (see M-2). |
 | Coordinator and web (capline-protocol.vercel.app) | Deployed 2026-10-07 with the H-1, M-4, M-5, M-6 and L-5 fixes and the corrected per-chain claims. |
 | `capline` SDK | 0.2.0 on npm (C-1 mitigation, L-6). |
 | `capline-mcp` | 0.2.0 on npm (H-3). |
@@ -52,7 +52,7 @@ Severity: **Critical** = direct loss of funds against the stated guarantee; **Hi
 | H-2 | High | Coordinator | The global cross-chain cap is advisory. No chain verifies tickets, the coordinator learns of a settlement only when the client commits, `broadcastRevocation` does nothing on-chain, and clients fail open when it is unreachable. A stolen key is bounded only by each chain's local caps. | **Open** (design). Documented in code, SDK and READMEs. | n/a |
 | H-3 | High | MCP | `create_mandate` and `revoke_mandate` were exposed to the model, so an injected agent could mint itself a looser mandate and pay under it. `pay` replied "SETTLED. Paid" while moving no funds. | **Fixed**: pinned mode (`CAPLINE_MANDATE_ID`) hides admin tools and rejects other mandates; output says AUTHORIZED and that no on-chain transfer happened. Demo mode remains and says it is not a boundary. | `mcp/test/server.test.ts` |
 | M-1 | Medium | Soroban | No way to withdraw funded tokens: unspent balance of a revoked or expired mandate was locked in the contract forever. | **Fixed** (`withdraw_unspent`) | `principal_reclaims_unspent_after_revoke` |
-| M-2 | Medium | Solana | The devnet program's upgrade authority is a single hot key (`J2GeZ1...gDH9`). Whoever holds it can replace the program and drain every vault. | **Open**. Decision for mainnet: multisig (Squads) or make immutable. | n/a |
+| M-2 | Medium | Solana | The devnet program's upgrade authority was a single hot key (`J2GeZ1...gDH9`). Whoever held it could replace the program and drain every vault. | **Fixed on devnet (2026-10-07)**: the upgrade authority is now the vault of a 2-of-3 Squads v4 multisig (multisig `GRBBcirMUrykvcMx2xNKTyTCh7gu7pvKmxt4JevfQwXy`, vault `Eh4PGgC81KSek38h9SVvKMQuJTXPDTHGmu6TE7kFPEx1`). Verified: an upgrade signed by the old key alone is rejected, and an upgrade proposal executes only after 2 of 3 members approve. Before mainnet, decide again between a multisig and an immutable program. | n/a |
 | M-3 | Medium | EVM | Mandate ids are global and first-come; anyone controlling any agent identity can squat an id another principal has published. | **Open** (needs v2: key ids by `msg.sender`). | `test_KnownLimitation_M3_mandateIdSquatting` |
 | M-4 | Medium | Coordinator | KV read-modify-write was not atomic across serverless instances: concurrent authorizes could all pass. Reproduced: 9 of 12 ten-unit tickets issued on a 50 cap. | **Fixed**: per-mandate lock plus Lua compare-and-swap. | smoke: "Concurrency across two KV-backed instances" |
 | M-5 | Medium | Coordinator | Anyone could revoke any mandate (griefing); ticket ids used `Math.random`. | **Fixed**: `revoke` needs the `principalToken` from `create`; ids are 128-bit random. Legacy mandates without a token stay revocable without one. | smoke: "Revoke needs the principal token" |
