@@ -29,6 +29,9 @@ pub mod capline {
     /// A principal (the human/owner) grants a bounded, revocable mandate to an
     /// agent's wallet. The mandate PDA owns a vault the agent spends *from* — but
     /// only through `settle`, which enforces every constraint on-chain.
+    // The instruction's argument list is its on-chain ABI; bundling the
+    // arguments into a struct would change the wire format live clients use.
+    #[allow(clippy::too_many_arguments)]
     pub fn create_mandate(
         ctx: Context<CreateMandate>,
         nonce: u64,
@@ -39,7 +42,10 @@ pub mod capline {
         ap2_hash: [u8; 32],
         merchants: Vec<Pubkey>,
     ) -> Result<()> {
-        require!(merchants.len() <= MAX_MERCHANTS, CaplineError::TooManyMerchants);
+        require!(
+            merchants.len() <= MAX_MERCHANTS,
+            CaplineError::TooManyMerchants
+        );
         require!(max_per_tx > 0 && total_cap > 0, CaplineError::BadCap);
         require!(max_per_tx <= total_cap, CaplineError::CapOrdering);
         let now = Clock::get()?.unix_timestamp;
@@ -78,6 +84,10 @@ pub mod capline {
     pub fn settle(ctx: Context<Settle>, amount: u64) -> Result<()> {
         let m = &ctx.accounts.mandate;
 
+        // 0. a zero-value settle moves nothing but would still emit a Settled
+        //    event that indexers could mistake for a payment. Reject it.
+        require!(amount > 0, CaplineError::ZeroAmount);
+
         // 1. still live?
         require!(!m.revoked, CaplineError::MandateRevoked);
         let now = Clock::get()?.unix_timestamp;
@@ -85,17 +95,27 @@ pub mod capline {
 
         // 2. only the granted agent may spend (its key, compromised or not, is
         //    still bounded by everything below).
-        require_keys_eq!(ctx.accounts.agent.key(), m.agent, CaplineError::Unauthorized);
+        require_keys_eq!(
+            ctx.accounts.agent.key(),
+            m.agent,
+            CaplineError::Unauthorized
+        );
 
         // 3. the caps — the whole point.
         require!(amount <= m.max_per_tx, CaplineError::PerTxCapExceeded);
-        let new_spent = m.spent.checked_add(amount).ok_or(CaplineError::MathOverflow)?;
+        let new_spent = m
+            .spent
+            .checked_add(amount)
+            .ok_or(CaplineError::MathOverflow)?;
         require!(new_spent <= m.total_cap, CaplineError::TotalCapExceeded);
 
         // 4. the merchant must be on the signed allowlist, and the destination
         //    token account must actually belong to that merchant + right mint.
         let merchant = ctx.accounts.merchant.key();
-        require!(m.merchants.contains(&merchant), CaplineError::MerchantNotAllowed);
+        require!(
+            m.merchants.contains(&merchant),
+            CaplineError::MerchantNotAllowed
+        );
         require_keys_eq!(
             ctx.accounts.merchant_token_account.owner,
             merchant,
@@ -126,7 +146,12 @@ pub mod capline {
         )?;
 
         ctx.accounts.mandate.spent = new_spent;
-        emit!(Settled { mandate: ctx.accounts.mandate.key(), merchant, amount, spent: new_spent });
+        emit!(Settled {
+            mandate: ctx.accounts.mandate.key(),
+            merchant,
+            amount,
+            spent: new_spent
+        });
         Ok(())
     }
 
@@ -140,28 +165,24 @@ pub mod capline {
         let ix_sysvar = ctx.accounts.instructions_sysvar.to_account_info();
         let current = load_current_index_checked(&ix_sysvar)?;
 
-        // find the Ed25519 verify instruction in this transaction
+        // Find the Ed25519 verify instruction in this transaction and bind it.
+        //
+        // The native Ed25519 program verifies whatever bytes its offsets point
+        // at, and each offset carries an instruction index: u16::MAX means "this
+        // instruction", any other value means "read from instruction N". If we
+        // read the pubkey and message from THIS instruction's data while the
+        // native program verified bytes from a DIFFERENT instruction, an
+        // attacker could get an unsigned (pubkey, message) pair accepted. So we
+        // require all three index fields to be u16::MAX and bounds-check every
+        // offset, including the signature's.
         let mut found: Option<(Pubkey, [u8; 32])> = None;
         for i in 0..current {
             let ix = load_instruction_at_checked(i as usize, &ix_sysvar)?;
             if ix.program_id != ed25519_program::ID {
                 continue;
             }
-            let d = &ix.data;
-            // Ed25519 instruction layout (single signature, standard builder):
-            // [num=1, pad, offsets(14)], then pubkey, signature, message.
-            require!(d.len() >= 16 && d[0] == 1, CaplineError::BadAp2Proof);
-            let u16at = |o: usize| u16::from_le_bytes([d[o], d[o + 1]]) as usize;
-            let pk_off = u16at(6);
-            let msg_off = u16at(10);
-            let msg_size = u16at(12);
-            require!(
-                pk_off + 32 <= d.len() && msg_off + msg_size <= d.len(),
-                CaplineError::BadAp2Proof
-            );
-            let pubkey = Pubkey::try_from(&d[pk_off..pk_off + 32]).map_err(|_| CaplineError::BadAp2Proof)?;
-            let msg = &d[msg_off..msg_off + msg_size];
-            found = Some((pubkey, hash(msg).to_bytes()));
+            let (pubkey, msg_hash) = parse_ed25519_single_self(&ix.data)?;
+            found = Some((pubkey, msg_hash));
             break;
         }
 
@@ -170,7 +191,10 @@ pub mod capline {
         require_keys_eq!(signer, m.principal, CaplineError::Ap2SignerMismatch);
         require!(msg_hash == m.ap2_hash, CaplineError::Ap2HashMismatch);
         m.ap2_verified = true;
-        emit!(Ap2Verified { mandate: m.key(), signer });
+        emit!(Ap2Verified {
+            mandate: m.key(),
+            signer
+        });
         Ok(())
     }
 
@@ -178,12 +202,15 @@ pub mod capline {
     /// the next `settle` reverts with MandateRevoked.
     pub fn revoke(ctx: Context<Revoke>) -> Result<()> {
         ctx.accounts.mandate.revoked = true;
-        emit!(Revoked { mandate: ctx.accounts.mandate.key() });
+        emit!(Revoked {
+            mandate: ctx.accounts.mandate.key()
+        });
         Ok(())
     }
 
     /// Principal reclaims whatever the agent didn't spend.
     pub fn withdraw_unspent(ctx: Context<WithdrawUnspent>, amount: u64) -> Result<()> {
+        require!(amount > 0, CaplineError::ZeroAmount);
         let m = &ctx.accounts.mandate;
         let principal = m.principal;
         let nonce = m.nonce.to_le_bytes();
@@ -201,8 +228,56 @@ pub mod capline {
             ),
             amount,
         )?;
+        emit!(Withdrawn {
+            mandate: ctx.accounts.mandate.key(),
+            to: ctx.accounts.principal_token_account.key(),
+            amount,
+        });
         Ok(())
     }
+}
+
+/// Size of the Ed25519 program's instruction header for one signature:
+/// [num_signatures u8, padding u8, then 7 x u16 offsets].
+const ED25519_HEADER_LEN: usize = 16;
+const ED25519_PUBKEY_LEN: usize = 32;
+const ED25519_SIG_LEN: usize = 64;
+
+/// Parse a single-signature Ed25519 program instruction whose signature,
+/// pubkey and message all live in the instruction's OWN data, and return the
+/// pubkey plus sha256(message). Rejects any instruction that points the native
+/// verifier at another instruction's data.
+fn parse_ed25519_single_self(d: &[u8]) -> Result<(Pubkey, [u8; 32])> {
+    require!(d.len() >= ED25519_HEADER_LEN, CaplineError::BadAp2Proof);
+    // exactly one signature, zero padding (what every standard builder emits)
+    require!(d[0] == 1 && d[1] == 0, CaplineError::BadAp2Proof);
+    let u16at = |o: usize| u16::from_le_bytes([d[o], d[o + 1]]);
+    let sig_off = u16at(2) as usize;
+    let sig_ix = u16at(4);
+    let pk_off = u16at(6) as usize;
+    let pk_ix = u16at(8);
+    let msg_off = u16at(10) as usize;
+    let msg_size = u16at(12) as usize;
+    let msg_ix = u16at(14);
+
+    // every referenced byte must come from THIS instruction
+    require!(
+        sig_ix == u16::MAX && pk_ix == u16::MAX && msg_ix == u16::MAX,
+        CaplineError::Ap2ProofNotSelfContained
+    );
+    // and every range must lie inside the data, past the header (offsets are
+    // u16, so these sums cannot overflow usize)
+    let in_body = |off: usize, len: usize| off >= ED25519_HEADER_LEN && off + len <= d.len();
+    require!(
+        in_body(sig_off, ED25519_SIG_LEN)
+            && in_body(pk_off, ED25519_PUBKEY_LEN)
+            && in_body(msg_off, msg_size),
+        CaplineError::BadAp2Proof
+    );
+
+    let pubkey = Pubkey::try_from(&d[pk_off..pk_off + ED25519_PUBKEY_LEN])
+        .map_err(|_| CaplineError::BadAp2Proof)?;
+    Ok((pubkey, hash(&d[msg_off..msg_off + msg_size]).to_bytes()))
 }
 
 #[derive(Accounts)]
@@ -352,6 +427,13 @@ pub struct Revoked {
 }
 
 #[event]
+pub struct Withdrawn {
+    pub mandate: Pubkey,
+    pub to: Pubkey,
+    pub amount: u64,
+}
+
+#[event]
 pub struct Ap2Verified {
     pub mandate: Pubkey,
     pub signer: Pubkey,
@@ -391,4 +473,9 @@ pub enum CaplineError {
     Ap2SignerMismatch,
     #[msg("signed message does not match the committed AP2 hash")]
     Ap2HashMismatch,
+    // --- appended after the initial devnet deploy; never reorder the above ---
+    #[msg("amount must be greater than zero")]
+    ZeroAmount,
+    #[msg("Ed25519 instruction must reference its own data (instruction index u16::MAX)")]
+    Ap2ProofNotSelfContained,
 }
