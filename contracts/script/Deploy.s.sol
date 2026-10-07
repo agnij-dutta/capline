@@ -61,8 +61,7 @@ contract Deploy is Script {
 
         // Deterministic mandateId, derived from the deploy + agent identity so the
         // dapp can recompute/verify it. Stable for a given (registry, agent).
-        bytes32 demoMandateId =
-            keccak256(abi.encode("mandate.demo.v1", address(registry), demoAgentId, deployer));
+        bytes32 demoMandateId = keccak256(abi.encode("mandate.demo.v1", address(registry), demoAgentId, deployer));
 
         registry.createMandate(demoMandateId, m);
 

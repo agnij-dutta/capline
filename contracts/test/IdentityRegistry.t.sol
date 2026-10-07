@@ -64,8 +64,7 @@ contract IdentityRegistryTest is Test {
     ///         controller check, end-to-end.
     function test_integratesWithMandateRegistry() public {
         MockUSDC usdc = new MockUSDC();
-        MandateRegistry reg =
-            new MandateRegistry(IIdentity(address(id)), IERC3009(address(usdc)));
+        MandateRegistry reg = new MandateRegistry(IIdentity(address(id)), IERC3009(address(usdc)));
 
         vm.startPrank(alice);
         uint256 agentId = id.register("demo-agent.mandate.box");

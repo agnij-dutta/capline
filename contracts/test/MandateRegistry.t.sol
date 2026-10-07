@@ -37,7 +37,7 @@ contract MandateRegistryTest is Test {
             principal: principal,
             agentId: AGENT_ID,
             agentSigner: agentSigner,
-            maxPerTx: 5 * USDC1,       // cap: 5 USDC per tx
+            maxPerTx: 5 * USDC1, // cap: 5 USDC per tx
             maxCumulative: 20 * USDC1, // cap: 20 USDC lifetime
             expiry: 0,
             allowedPayeesRoot: bytes32(0), // any payee
@@ -100,7 +100,9 @@ contract MandateRegistryTest is Test {
         // A fully jailbroken agent tries to pay 10,000 USDC. The chain says no.
         bytes32[] memory proof;
         vm.expectRevert(MandateRegistry.CapExceeded.selector);
-        reg.settle(MID, scammer, 10_000 * USDC1, 0, type(uint256).max, keccak256("evil"), 0, bytes32(0), bytes32(0), proof);
+        reg.settle(
+            MID, scammer, 10_000 * USDC1, 0, type(uint256).max, keccak256("evil"), 0, bytes32(0), bytes32(0), proof
+        );
         // No money moved.
         assertEq(usdc.balanceOf(scammer), 0);
         assertEq(reg.spent(MID), 0);
