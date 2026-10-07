@@ -1,4 +1,4 @@
-// The Agent Brain — deliberately gullible.
+// The Agent Brain: deliberately gullible.
 //
 // This stands in for an LLM agent. It holds NO key and has exactly ONE outward
 // payment capability: it can *propose* a payment to the ConstrainedSigner. It

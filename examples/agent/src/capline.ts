@@ -1,8 +1,8 @@
 // The leash. The agent's brain (brain.ts) can PROPOSE any payment; this is the
-// only thing that can actually execute one — and it runs every proposal through
+// only thing that can actually execute one: and it runs every proposal through
 // a Capline mandate first. Enforcement here uses the hosted cross-chain
 // coordinator (Layer A), so this demo needs ZERO on-chain funds. The same mandate
-// is also enforced on-chain (Layer B) when you settle for real — see the README.
+// is also enforced on-chain (Layer B) when you settle for real: see the README.
 import { CoordinatorClient, type AuthResult } from "capline/coordinator";
 import { hashIntent } from "capline";
 
@@ -31,7 +31,7 @@ export class MandateExceeded extends Error {
 
 export interface Mandate {
   id: string;
-  commitment: string; // sha256(AP2 intent) — the on-chain-committed hash
+  commitment: string; // sha256(AP2 intent): the on-chain-committed hash
 }
 
 /** Provision the signed AP2 mandate the agent will operate under. */
@@ -58,7 +58,7 @@ export async function provisionMandate(): Promise<Mandate> {
 /**
  * The ONLY outward payment capability the agent has. Runs the proposal through
  * the mandate; settles if within bounds, throws MandateExceeded if not. No
- * jailbreak prompt can change these numbers — they aren't natural language.
+ * jailbreak prompt can change these numbers: they aren't natural language.
  */
 export async function pay(
   mandate: Mandate,

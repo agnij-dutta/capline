@@ -35,7 +35,7 @@ export function withCapline(opts: MandateClientOpts) {
       return res.header;
     },
 
-    /** Like `pay` but never throws — returns the signer result. */
+    /** Like `pay` but never throws: returns the signer result. */
     async tryPay(req: PaymentRequirements, override?: { to?: `0x${string}`; value?: bigint }) {
       return opts.signer.proposePayment({ mandateId: opts.mandateId, req, ...override });
     },

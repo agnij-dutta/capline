@@ -3,7 +3,7 @@
 // Uses the REAL x402 wire format (x402 v1.2.0): the seller emits a standard
 // `PaymentRequirements` (the HTTP 402 body); the facilitator decodes the
 // `X-PAYMENT` header with x402's own `decodePayment` and settles the EIP-3009
-// authorization by calling MandateRegistry.settle — where Layer-B enforcement
+// authorization by calling MandateRegistry.settle: where Layer-B enforcement
 // reverts an out-of-mandate payment, even if the signer is compromised.
 import { decodePayment } from "x402/schemes";
 import type { PaymentRequirements } from "x402/types";
@@ -74,7 +74,7 @@ export class Facilitator {
   /**
    * Settle an x402 payment header THROUGH the mandate. Returns the tx hash on
    * success. An out-of-mandate payment reverts (CapExceeded / PayeeNotAllowed /
-   * Revoked / Expired) and this throws — the unfakeable proof.
+   * Revoked / Expired) and this throws: the unfakeable proof.
    */
   async settleViaMandate(
     mandateId: `0x${string}`,
@@ -95,7 +95,7 @@ export class Facilitator {
   }
 
   /**
-   * Settle an x402 payment DIRECTLY against USDC — i.e. an agent with NO
+   * Settle an x402 payment DIRECTLY against USDC: i.e. an agent with NO
    * mandate. Nothing checks the amount. This is what the world looks like
    * without Mandate, and why the naive agent gets drained.
    */

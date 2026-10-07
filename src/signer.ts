@@ -1,9 +1,9 @@
-// The Constrained Signer — Layer A enforcement.
+// The Constrained Signer: Layer A enforcement.
 //
 // This process holds the agent's wallet key. The agent's LLM brain does NOT.
 // The brain can only *propose* a payment; this signer decides whether to build
 // the x402 payment at all. Its logic reads numbers off-chain (cap comparisons),
-// never natural language — so no jailbreak prompt changes `value > maxPerTx`.
+// never natural language: so no jailbreak prompt changes `value > maxPerTx`.
 //
 // When in-bounds, it produces a REAL x402 `X-PAYMENT` header via the x402
 // client (a signed EIP-3009 authorization). When out-of-bounds, it returns a

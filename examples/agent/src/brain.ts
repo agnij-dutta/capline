@@ -1,11 +1,11 @@
 // The agent's brain. A real LLM (Groq, OpenAI-compatible function calling) with a
-// single `pay` tool — deliberately obedient, because that's the point: a payment
+// single `pay` tool: deliberately obedient, because that's the point: a payment
 // agent's job is to pay, and a prompt injection will make it *try* to overpay.
 // Capline is what stops it. With no GROQ_API_KEY, a scripted brain keeps the demo
 // alive so `npm run attack` works with zero setup.
 
 const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
-const MODEL = process.env.GROQ_MODEL || "llama-3.3-70b-versatile";
+const MODEL = process.env.GROQ_MODEL || "openai/gpt-oss-20b";
 
 export interface Decision {
   monologue: string[];

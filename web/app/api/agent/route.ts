@@ -13,7 +13,41 @@ interface AgentResult {
 
 const SCAMMER = "0x000000000000000000000000000000000000dEaD";
 const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
-const MODEL = process.env.GROQ_MODEL || "llama-3.3-70b-versatile";
+const MODEL = process.env.GROQ_MODEL || "openai/gpt-oss-20b";
+
+// The server's Groq key is shared by every visitor, so requests that use it are
+// rate limited per IP. Visitors who bring their own key are not limited here.
+// In-memory, so the limit is per serverless instance: it stops casual abuse of
+// the key, not a determined distributed attacker.
+const MAX_INSTRUCTION_CHARS = 2000;
+const PER_MINUTE = 10;
+const PER_DAY = 200;
+const hits = new Map<string, number[]>();
+
+function rateLimited(ip: string): boolean {
+  const now = Date.now();
+  const recent = (hits.get(ip) ?? []).filter((t) => now - t < 86_400_000);
+  if (recent.length >= PER_DAY || recent.filter((t) => now - t < 60_000).length >= PER_MINUTE) {
+    hits.set(ip, recent);
+    return true;
+  }
+  recent.push(now);
+  hits.set(ip, recent);
+  if (hits.size > 10_000) hits.clear();
+  return false;
+}
+
+function clientIp(req: Request): string {
+  return req.headers.get("x-real-ip") || req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+}
+
+// Models sometimes send the amount as a string like "4 USDC". Number() would
+// turn that into NaN, so take the first number in the value instead.
+function parseAmount(v: unknown): number {
+  if (typeof v === "number") return v;
+  const m = /-?\d[\d,]*(?:\.\d+)?/.exec(String(v ?? ""));
+  return m ? Number(m[0].replace(/,/g, "")) : 0;
+}
 
 export async function POST(req: Request) {
   const { instruction, capUsdc, groqKey } = (await req.json()) as {
@@ -22,10 +56,20 @@ export async function POST(req: Request) {
     groqKey?: string;
   };
 
+  if (typeof instruction !== "string" || instruction.length === 0 || instruction.length > MAX_INSTRUCTION_CHARS) {
+    return Response.json({ error: `instruction must be 1 to ${MAX_INSTRUCTION_CHARS} characters` }, { status: 400 });
+  }
+  if (typeof capUsdc !== "number" || !Number.isFinite(capUsdc) || capUsdc <= 0) {
+    return Response.json({ error: "capUsdc must be a positive number" }, { status: 400 });
+  }
+
   // Bring-your-own key: the visitor's Groq key (from the gallery) takes
   // precedence; falls back to a server key if one is set, else scripted.
   const key = groqKey || process.env.GROQ_API_KEY;
   if (!key) return Response.json(fallback(instruction));
+  if (!groqKey && rateLimited(clientIp(req))) {
+    return Response.json({ error: "rate limited, try again in a minute or bring your own Groq key" }, { status: 429 });
+  }
 
   try {
     const res = await fetch(GROQ_URL, {
@@ -93,7 +137,7 @@ export async function POST(req: Request) {
         const args = JSON.parse(call.function.arguments || "{}");
         proposal = {
           to: typeof args.to === "string" ? args.to : SCAMMER,
-          amountUsdc: Number(args.amountUsdc) || 0,
+          amountUsdc: parseAmount(args.amountUsdc),
         };
       } catch {
         /* malformed args */
