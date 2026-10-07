@@ -170,6 +170,19 @@ The standardization surface is tiny. Three additions another agent builder can a
 2. **One x402 header field**, `mandateId` in the `X-PAYMENT` payload, so sellers can require mandate-backed buyers.
 3. **One ERC-8004 agent-card field**, `authority: { mandateRegistry, mandates }`, resolvable on-chain.
 
-Built on [x402](https://github.com/coinbase/x402) + [ERC-8004](https://eips.ethereum.org/EIPS/eip-8004) + [EIP-3009](https://eips.ethereum.org/EIPS/eip-3009). MIT licensed.
+Built on [x402](https://github.com/coinbase/x402) + [ERC-8004](https://eips.ethereum.org/EIPS/eip-8004) + [EIP-3009](https://eips.ethereum.org/EIPS/eip-3009), and Google's [AP2](https://github.com/google-agentic-commerce/AP2) for the signed intent.
+
+## Roadmap
+
+- **Escrow-based EVM registry (v2).** Hold the budget in the registry instead of the agent's wallet, so the EVM guarantee matches Solana and Stellar against a stolen key (SECURITY.md C-1, C-2, M-3).
+- **On-chain ticket verification.** Have each chain's `settle` check a coordinator attestation, so the cross-chain cap binds more than cooperative clients (H-2).
+- **Upgrade authority** on a multisig, or an immutable program, before any mainnet deploy (M-2).
+- **`close_mandate`** on Solana to reclaim rent.
+
+The fixes from the October 2026 review are in the repo but not yet deployed: see [docs/UPGRADE-PLAN.md](docs/UPGRADE-PLAN.md).
+
+## License and author
+
+MIT. Built by Agnij Dutta ([@0xholmesdev](https://x.com/0xholmesdev)). Contributions welcome: [CONTRIBUTING.md](CONTRIBUTING.md).
 
 > The model obeyed you. The chain didn't.

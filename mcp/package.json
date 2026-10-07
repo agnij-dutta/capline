@@ -4,11 +4,12 @@
   "description": "MCP server that gives an AI agent a wallet it can't drain \u2014 it can only pay within a signed Capline mandate (per-tx cap, payee allowlist, global cross-chain cap).",
   "type": "module",
   "license": "MIT",
-  "author": "Capline",
+  "author": "Agnij Dutta (https://x.com/0xholmesdev)",
   "homepage": "https://capline-protocol.vercel.app",
   "repository": {
     "type": "git",
-    "url": "https://github.com/agnij-dutta/capline"
+    "url": "https://github.com/agnij-dutta/capline",
+    "directory": "mcp"
   },
   "keywords": [
     "mcp",
@@ -47,5 +48,8 @@
   },
   "engines": {
     "node": ">=18"
+  },
+  "bugs": {
+    "url": "https://github.com/agnij-dutta/capline/issues"
   }
 }

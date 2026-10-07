@@ -4,11 +4,12 @@
   "description": "Cross-chain spend authority for AI agents. Enforce a signed AP2 mandate \u2014 per-tx cap, global cross-chain cap, expiry, payee allowlist \u2014 on Solana, Avalanche, and Base. The cap isn't in the prompt; it's a contract the LLM can't talk to.",
   "type": "module",
   "license": "MIT",
-  "author": "Capline",
+  "author": "Agnij Dutta (https://x.com/0xholmesdev)",
   "homepage": "https://capline-protocol.vercel.app",
   "repository": {
     "type": "git",
-    "url": "https://github.com/agnij-dutta/capline"
+    "url": "https://github.com/agnij-dutta/capline",
+    "directory": "sdk"
   },
   "keywords": [
     "ai-agents",
@@ -94,5 +95,8 @@
   },
   "engines": {
     "node": ">=18"
+  },
+  "bugs": {
+    "url": "https://github.com/agnij-dutta/capline/issues"
   }
 }
