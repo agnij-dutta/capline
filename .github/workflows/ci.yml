@@ -1,0 +1,130 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  solana:
+    name: solana program (LiteSVM)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: solana
+      # Only the Agave CLI is installed, not Anchor: the tests need the program
+      # .so, which `cargo build-sbf` produces at the same path `anchor build`
+      # does. Installing Anchor via avm compiles it from source (~10 min) and
+      # adds nothing the tests use.
+      - name: install agave cli
+        run: |
+          sh -c "$(curl -sSfL https://release.anza.xyz/v3.1.10/install)"
+          echo "$HOME/.local/share/solana/install/active_release/bin" >> "$GITHUB_PATH"
+      - name: fmt
+        working-directory: solana
+        run: cargo fmt --all -- --check
+      - name: build program
+        working-directory: solana
+        run: cargo build-sbf --manifest-path programs/capline/Cargo.toml
+      - name: clippy
+        working-directory: solana
+        run: cargo clippy --all-targets -- -D warnings
+      - name: test
+        working-directory: solana
+        run: cargo test --release -- --nocapture
+
+  evm:
+    name: evm contracts (forge)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: foundry-rs/foundry-toolchain@v1
+      - name: fmt (tests and scripts; src stays byte-identical to the deployed contracts)
+        working-directory: contracts
+        run: forge fmt --check test script
+      - name: test
+        working-directory: contracts
+        run: forge test -vv
+
+  soroban:
+    name: soroban contract
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: soroban
+      - name: fmt
+        working-directory: soroban
+        run: cargo fmt --all -- --check
+      - name: clippy
+        working-directory: soroban
+        run: cargo clippy --all-targets -- -D warnings
+      - name: test
+        working-directory: soroban
+        run: cargo test
+
+  sdk:
+    name: sdk (capline)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: sdk
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: sdk/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+
+  mcp:
+    name: mcp (capline-mcp)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mcp
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: mcp/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+
+  web:
+    name: web + coordinator
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+      - run: npx tsc --noEmit
+      - name: coordinator smoke tests
+        run: npm run smoke
+      - run: npm run build
