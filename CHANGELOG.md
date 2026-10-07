@@ -4,7 +4,11 @@ All notable changes to this repo. Format: [Keep a Changelog](https://keepachange
 
 ## [Unreleased]
 
-Fixes from the October 2026 independent security review. Finding ids refer to [SECURITY.md](SECURITY.md). None of this is deployed or published yet; see [docs/UPGRADE-PLAN.md](docs/UPGRADE-PLAN.md).
+## 2026-10-07: security review release
+
+Fixes from the October 2026 independent security review. Finding ids refer to [SECURITY.md](SECURITY.md).
+
+Shipped on 2026-10-07: the Solana program upgraded in place on devnet (same program id, deployed bytes sha256 `36e1e70b27cbc159ac9598cde6e8bbbc23a043a1757bd7ffecc8f481d094f9aa`), `capline` 0.2.0 and `capline-mcp` 0.2.0 on npm, and the web app redeployed. Not shipped: the Soroban fixes need a new contract id (see [docs/UPGRADE-PLAN.md](docs/UPGRADE-PLAN.md)).
 
 ### Solana program
 - `settle` and `withdraw_unspent` reject a zero amount with the new error `ZeroAmount` (6016) (L-4).
@@ -22,14 +26,14 @@ Fixes from the October 2026 independent security review. Finding ids refer to [S
 - No source change (keeps matching the verified Fuji bytecode).
 - `KnownLimitations.t.sol` pins C-1, C-2, M-3, L-2 and L-3 as executable tests (16 to 22 tests).
 
-### capline (SDK), next: 0.2.0
+### capline (SDK) 0.2.0
 - EVM `ConstrainedSigner`: checks the payee against the mandate's allowlist (new `allowedPayees` option), refuses a key that is not the mandate's `agentSigner`, counts every authorization it signed against the cumulative cap until it provably expired unused, and serializes concurrent proposals (C-1 mitigation).
 - New `payeeMerkleRoot` and `payeeProof` helpers matching `MandateRegistry._verifyPayee`.
 - Solana `preflight` mirrors `settle`: refuses zero, negative and over-u64 amounts, a non-agent signer, and a destination not owned by the merchant or of the wrong mint (L-6).
 - `CoordinatorClient.createMandate` returns `principalToken`; `revoke` accepts it.
 - First test suite (16 tests, `npm test`).
 
-### capline-mcp, next: 0.2.0
+### capline-mcp 0.2.0
 - Pinned mode: `CAPLINE_MANDATE_ID` pins the server to one principal-provisioned mandate and hides `create_mandate` / `revoke_mandate` unless `CAPLINE_MCP_ADMIN_TOOLS=1` (H-3).
 - `pay` reports `AUTHORIZED` and states that it moves no funds on-chain, instead of `SETTLED. Paid`.
 - First test suite (3 tests).
