@@ -1,6 +1,6 @@
-# Upgrade plan (not executed)
+# Upgrade plan
 
-Nothing in this plan has been run. The security review changed code only; every deployment below needs Agnij's approval. Findings are referenced by their ids in [SECURITY.md](../SECURITY.md).
+Status (2026-10-07): section 1 (Solana devnet) was executed, along with the web redeploy and the npm 0.2.0 releases. Section 2 (Soroban) has not been executed. See the deployment status table in [SECURITY.md](../SECURITY.md). Findings are referenced by their ids in [SECURITY.md](../SECURITY.md).
 
 ## 1. Solana program (devnet `DRNWDxtJ3P5hQCdGcmL3XXMW9NtnE345HTaWkk9dUhHp`)
 
@@ -41,7 +41,10 @@ shasum -a 256 target/deploy/capline.so
 cargo test --release            # 15 LiteSVM tests must pass against this .so
 
 # 2. the new binary is 3,344 bytes larger than the program data account; extend first
-solana program extend DRNWDxtJ3P5hQCdGcmL3XXMW9NtnE345HTaWkk9dUhHp 4096 \
+# devnet rejects extends smaller than 10,240 bytes ("ExtendProgram requires a minimum
+# of 10240 additional bytes"), and the CLI's auto-extend during deploy asks for the
+# exact difference and fails the same way, so extend explicitly by 10240.
+solana program extend DRNWDxtJ3P5hQCdGcmL3XXMW9NtnE345HTaWkk9dUhHp 10240 \
   -u devnet --keypair ~/.config/solana/id.json
 
 # 3. upgrade in place (same program id, signed by the upgrade authority)

@@ -25,7 +25,20 @@ Known non-goals: protecting against a compromised principal key, against the pro
 
 ## Independent review, October 2026
 
-Reviewed commit `eebbbed` (the code live on devnet, Fuji and Stellar testnet at the time). The devnet program bytecode was dumped and is byte-identical to a build of that commit (sha256 `a09c2ba8...5d79`), so the findings against the program apply to what is deployed. Fixes are on the commits that follow and are **not deployed**: see [docs/UPGRADE-PLAN.md](docs/UPGRADE-PLAN.md).
+Reviewed commit `eebbbed` (the code live on devnet, Fuji and Stellar testnet at the time). The devnet program bytecode was dumped and is byte-identical to a build of that commit (sha256 `a09c2ba8...5d79`), so the findings against the program applied to what was deployed then.
+
+### Deployment status (updated 2026-10-07)
+
+| Component | Status |
+|---|---|
+| Solana program (devnet `DRNWDxtJ3P5hQCdGcmL3XXMW9NtnE345HTaWkk9dUhHp`) | **Upgraded in place** on 2026-10-07 to the program code from commit `a686e30` (slot 508428919). The deployed bytes are byte-identical to a build of that commit (sha256 `36e1e70b27cbc159ac9598cde6e8bbbc23a043a1757bd7ffecc8f481d094f9aa`). L-1, L-4 and L-9 are fixed in the live program. Same program id and account layout, so existing mandates keep working. The upgrade authority is **unchanged** (`J2GeZ1...gDH9`), so M-2 is still open. |
+| Coordinator and web (capline-protocol.vercel.app) | Deployed 2026-10-07 with the H-1, M-4, M-5, M-6 and L-5 fixes and the corrected per-chain claims. |
+| `capline` SDK | 0.2.0 on npm (C-1 mitigation, L-6). |
+| `capline-mcp` | 0.2.0 on npm (H-3). |
+| EVM contracts (Fuji) | No source change. C-1 and C-2 remain open by design until an escrow-based v2. |
+| Soroban (Stellar testnet `CAXVTUT6...CCXE`) | **Not redeployed.** M-1 and L-7 are fixed in code, but the contract has no upgrade entry point, so the fix needs a new contract id. The deployed contract still has both. |
+
+See [docs/UPGRADE-PLAN.md](docs/UPGRADE-PLAN.md) for what each change does and how it was rolled out.
 
 Method: line-by-line manual review of every component; Slither on the EVM contracts (4 results, all benign: event-after-call, timestamp comparison, pragma range); `cargo clippy -D warnings` on both Rust contracts; and a regression test written for every fixed finding. Where a fix closes an exploit, the test was first run against the old code to confirm it reproduces.
 
