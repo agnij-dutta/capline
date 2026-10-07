@@ -1,7 +1,7 @@
 {
   "name": "capline",
   "version": "0.1.2",
-  "description": "Cross-chain spend authority for AI agents. Enforce a signed AP2 mandate — per-tx cap, global cross-chain cap, expiry, payee allowlist — on Solana, Avalanche, and Base. The cap isn't in the prompt; it's a contract the LLM can't talk to.",
+  "description": "Cross-chain spend authority for AI agents. Enforce a signed AP2 mandate \u2014 per-tx cap, global cross-chain cap, expiry, payee allowlist \u2014 on Solana, Avalanche, and Base. The cap isn't in the prompt; it's a contract the LLM can't talk to.",
   "type": "module",
   "license": "MIT",
   "author": "Capline",
@@ -50,7 +50,9 @@
   ],
   "scripts": {
     "build": "tsup",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run build",
+    "test": "node --import tsx --test test/*.test.ts",
+    "typecheck": "tsc --noEmit -p ."
   },
   "dependencies": {
     "@noble/hashes": "1.5.0"
@@ -85,6 +87,7 @@
     "@solana/web3.js": "^1.98.0",
     "@types/node": "^22.0.0",
     "tsup": "^8.3.0",
+    "tsx": "^4.23.15",
     "typescript": "^5.6.0",
     "viem": "^2.21.0",
     "x402": "^1.2.0"

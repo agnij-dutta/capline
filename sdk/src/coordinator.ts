@@ -9,6 +9,11 @@
 //   const { mandate } = await coord.createMandate({ ... });
 //   const auth = await coord.authorize(mandate.mandateId, "base", payee, 25);
 //   if (auth.ok) { /* settle on-chain */ await coord.commit(mandate.mandateId, auth.ticket.ticketId); }
+//
+// Trust model: the coordinator is an off-chain, cooperative control. No chain
+// verifies its tickets, and it only learns about a settlement when the client
+// commits. It bounds honest clients across chains; it does NOT bound a stolen
+// agent key, which is limited by each chain's own on-chain caps instead.
 import type { ChainId } from "./types.js";
 
 export interface CanonicalMandate {
@@ -43,7 +48,8 @@ export type AuthDenyReason =
   | "OVER_PER_TX"
   | "OVER_GLOBAL_CAP"
   | "PAYEE_NOT_ALLOWED"
-  | "CHAIN_NOT_PROVISIONED";
+  | "CHAIN_NOT_PROVISIONED"
+  | "INVALID_AMOUNT";
 
 export type AuthResult =
   | { ok: true; ticket: AuthTicket; remaining: number }
@@ -81,7 +87,13 @@ export class CoordinatorClient {
     return (await res.json()) as T;
   }
 
-  createMandate(input: CreateMandateInput): Promise<{ mandate: CanonicalMandate; status: MandateStatus }> {
+  /**
+   * Create a mandate. `principalToken` is returned exactly once and is required
+   * by `revoke`; keep it with the principal, never give it to the agent.
+   */
+  createMandate(
+    input: CreateMandateInput,
+  ): Promise<{ mandate: CanonicalMandate; principalToken: string; status: MandateStatus }> {
     return this.post("create", input as unknown as Record<string, unknown>);
   }
 
@@ -89,7 +101,8 @@ export class CoordinatorClient {
     return this.post("authorize", { mandateId, chain, to, amount });
   }
 
-  commit(mandateId: string, ticketId: string): Promise<{ ok: boolean; status: MandateStatus }> {
+  /** `late` = the reservation had expired; the spend is still counted. */
+  commit(mandateId: string, ticketId: string): Promise<{ ok: boolean; late?: boolean; status: MandateStatus }> {
     return this.post("commit", { mandateId, ticketId });
   }
 
@@ -97,8 +110,8 @@ export class CoordinatorClient {
     return this.post("release", { mandateId, ticketId });
   }
 
-  revoke(mandateId: string): Promise<{ ok: boolean; status: MandateStatus }> {
-    return this.post("revoke", { mandateId });
+  revoke(mandateId: string, principalToken?: string): Promise<{ ok: boolean; status: MandateStatus }> {
+    return this.post("revoke", { mandateId, principalToken });
   }
 
   async status(mandateId: string): Promise<MandateStatus> {

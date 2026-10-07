@@ -15,7 +15,9 @@ import type { Program, BN as AnchorBN } from "@coral-xyz/anchor";
 // through as the namespace with `default` on it (or undefined), so fall back.
 import * as anchorNs from "@coral-xyz/anchor";
 import { PublicKey, type TransactionSignature } from "@solana/web3.js";
-import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
+import { TOKEN_PROGRAM_ID, getAccount } from "@solana/spl-token";
+
+const U64_MAX = (1n << 64n) - 1n;
 
 type AnchorModule = typeof import("@coral-xyz/anchor");
 const anchor: AnchorModule =
@@ -25,7 +27,7 @@ const { BN } = anchor;
 export class MandateExceeded extends Error {
   constructor(
     readonly reason: string,
-    readonly detail?: { cap?: string; attempted?: string; merchant?: string },
+    readonly detail?: { cap?: string; attempted?: string; merchant?: string; agent?: string },
   ) {
     super(`MandateExceeded: ${reason}${detail ? ` ${JSON.stringify(detail)}` : ""}`);
     this.name = "MandateExceeded";
@@ -50,12 +52,31 @@ export interface PayRequest {
 export function withCapline(opts: WithCaplineOpts) {
   const { program, mandate, agent } = opts;
 
+  /**
+   * Layer A. Mirrors every check `settle` makes on-chain, in the same order
+   * of concern, so anything that passes here is expected to pass on-chain
+   * (modulo state changing between this read and the transaction landing,
+   * e.g. a concurrent settle or a revoke). It never loosens a rule: Layer B
+   * stays the authority.
+   */
   async function preflight(req: PayRequest) {
+    const amount = req.amount;
+    // settle(amount: u64) rejects 0 (ZeroAmount); a negative or > u64 value
+    // cannot even be encoded, so refuse before touching the network.
+    if (typeof amount !== "bigint" || amount <= 0n)
+      throw new MandateExceeded("amount must be a positive integer (base units)", {
+        attempted: String(amount),
+      });
+    if (amount > U64_MAX)
+      throw new MandateExceeded("amount exceeds u64", { attempted: amount.toString() });
+
     // Anchor's generic AccountNamespace doesn't know app-specific accounts.
     const accounts = program.account as unknown as {
       mandate: { fetch(pda: PublicKey): Promise<unknown> };
     };
     const m = (await accounts.mandate.fetch(mandate)) as {
+      agent: PublicKey;
+      mint: PublicKey;
       revoked: boolean;
       notAfter: AnchorBN;
       maxPerTx: AnchorBN;
@@ -64,12 +85,16 @@ export function withCapline(opts: WithCaplineOpts) {
       merchants: PublicKey[];
       vault: PublicKey;
     };
-    const amount = req.amount;
 
     if (m.revoked) throw new MandateExceeded("mandate revoked");
 
+    // On-chain: `now <= not_after` against the cluster clock. Local clock
+    // skew can make this disagree by a few seconds right at the boundary.
     const now = Math.floor(Date.now() / 1000);
     if (now > Number(m.notAfter)) throw new MandateExceeded("mandate expired");
+
+    if (!m.agent.equals(agent))
+      throw new MandateExceeded("signer is not the mandate's agent", { agent: agent.toBase58() });
 
     const maxPerTx = BigInt(m.maxPerTx.toString());
     if (amount > maxPerTx)
@@ -89,6 +114,21 @@ export function withCapline(opts: WithCaplineOpts) {
     const allowed = m.merchants.some((p) => p.equals(req.merchant));
     if (!allowed)
       throw new MandateExceeded("merchant not on allowlist", { merchant: req.merchant.toBase58() });
+
+    // On-chain: the destination must be an SPL Token account owned by the
+    // merchant, of the mandate's mint (InvalidMerchantAccount otherwise).
+    let dest;
+    try {
+      dest = await getAccount(program.provider.connection, req.merchantTokenAccount, undefined, TOKEN_PROGRAM_ID);
+    } catch {
+      throw new MandateExceeded("merchant token account missing or not an SPL Token account", {
+        merchant: req.merchantTokenAccount.toBase58(),
+      });
+    }
+    if (!dest.owner.equals(req.merchant) || !dest.mint.equals(m.mint))
+      throw new MandateExceeded("merchant token account does not match merchant/mint", {
+        merchant: req.merchantTokenAccount.toBase58(),
+      });
 
     return m;
   }
