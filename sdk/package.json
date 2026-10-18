@@ -1,7 +1,7 @@
 {
   "name": "capline",
-  "version": "0.2.0",
-  "description": "Cross-chain spend authority for AI agents. Enforce a signed AP2 mandate \u2014 per-tx cap, global cross-chain cap, expiry, payee allowlist \u2014 on Solana, Avalanche, and Base. The cap isn't in the prompt; it's a contract the LLM can't talk to.",
+  "version": "0.2.1",
+  "description": "Spend authority for AI agents. TypeScript client for Capline mandates (per-tx cap, total cap, expiry, payee allowlist) enforced by an on-chain program on Solana, with EVM (Avalanche Fuji) support and an advisory cross-chain budget coordinator.",
   "type": "module",
   "license": "MIT",
   "author": "Agnij Dutta (https://x.com/0xholmesdev)",

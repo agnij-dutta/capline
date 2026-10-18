@@ -1,8 +1,10 @@
-// capline — cross-chain spend authority for AI agents.
+// capline: spend authority for AI agents.
 //
-// The cap isn't in the prompt; it's a contract the LLM can't talk to. A signed
-// AP2 mandate (per-tx cap, global cross-chain cap, expiry, payee allowlist) is
-// enforced natively on each chain AND globally by the coordinator.
+// A mandate (per-tx cap, total cap, expiry, payee allowlist) is enforced by an
+// on-chain program at settlement. On Solana the budget sits in a program-owned
+// vault, so it holds even if the agent key is stolen; on EVM the check binds
+// only payments routed through settle. The cross-chain coordinator is advisory.
+// See SECURITY.md for the full model.
 //
 // Subpath imports keep chain deps optional:
 //   import { CHAINS, ap2HashHex } from "capline";
@@ -14,4 +16,4 @@ export * from "./types.js";
 export * from "./chains.js";
 export * from "./ap2.js";
 
-export const VERSION = "0.1.2";
+export const VERSION = "0.2.1";

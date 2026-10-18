@@ -49,7 +49,7 @@ export function buildServer(opts: ServerOptions) {
   const tokens = new Map<string, string>();
   if (pinned && opts.principalToken) tokens.set(pinned, opts.principalToken);
 
-  const server = new McpServer({ name: "capline-mcp", version: "0.2.0" });
+  const server = new McpServer({ name: "capline-mcp", version: "0.2.1" });
 
   const resolveMandate = (requested?: string): { id: string } | { error: string } => {
     if (pinned) {

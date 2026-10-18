@@ -1,7 +1,7 @@
 {
   "name": "capline-mcp",
-  "version": "0.2.0",
-  "description": "MCP server that gives an AI agent a wallet it can't drain \u2014 it can only pay within a signed Capline mandate (per-tx cap, payee allowlist, global cross-chain cap).",
+  "version": "0.2.1",
+  "description": "MCP server that lets an AI agent request payments against a Capline mandate through the cross-chain coordinator (per-tx cap, payee allowlist, global budget). On-chain enforcement happens in the Capline program at settlement, not in this server.",
   "type": "module",
   "license": "MIT",
   "author": "Agnij Dutta (https://x.com/0xholmesdev)",
@@ -37,7 +37,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.0",
-    "capline": "^0.1.0",
+    "capline": "^0.2.1",
     "zod": "^3.23.8"
   },
   "devDependencies": {

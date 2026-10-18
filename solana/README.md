@@ -1,8 +1,6 @@
 # Capline: Solana
 
-**On-chain spend authority for AI agents.** Jailbreak the model all you want, it still can't pay outside its signed mandate.
-
-> The cap isn't in the prompt. It's a contract the LLM can't talk to.
+**On-chain spend authority for AI agents.** The agent can only pay through the program's `settle`, which enforces the mandate before tokens move, even if the agent key is compromised.
 
 This is the Solana port of Capline, moved **up-stack** from the EVM original. Where Solana's native allowance primitive enforces a single number, Capline enforces the whole **AP2 Intent Mandate** the number came from: a per-transaction cap, a cumulative cap, an expiry window, and a merchant allowlist, all committed on-chain and enforced at settlement.
 
@@ -26,7 +24,7 @@ A single Anchor program. State is a `Mandate` PDA that owns a token vault the ag
 
 Enforcement is **Layer B**: the money sits in a vault owned by the mandate PDA, so even a fully compromised agent key, prompt-injected to pay 1000 USDC to a scammer, is reverted on-chain. The most a stolen agent key can do is spend the remaining budget to allowlisted merchants, which is what the mandate allows. The SDK's `withCapline` is **Layer A**: it mirrors the on-chain checks and refuses to even build the transaction off-chain.
 
-Error codes are stable and append-only (`6000` MandateRevoked through `6015` Ap2HashMismatch; `6016` ZeroAmount and `6017` Ap2ProofNotSelfContained were added by the security review and are live only after the next upgrade, see [`docs/UPGRADE-PLAN.md`](../docs/UPGRADE-PLAN.md)).
+Error codes are stable and append-only (`6000` MandateRevoked through `6015` Ap2HashMismatch; `6016` ZeroAmount and `6017` Ap2ProofNotSelfContained were added by the security review and are live on devnet since the October 2026 upgrade, see [`docs/UPGRADE-PLAN.md`](../docs/UPGRADE-PLAN.md)).
 
 ## The SDK (`app/`)
 

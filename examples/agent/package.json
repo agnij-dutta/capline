@@ -3,13 +3,13 @@
   "private": true,
   "type": "module",
   "version": "0.1.0",
-  "description": "Give an AI agent a wallet it can't drain. A clone-and-run Capline reference agent.",
+  "description": "A clone-and-run reference agent that pays through a Capline mandate via the cross-chain coordinator.",
   "scripts": {
     "attack": "tsx src/attack.ts",
     "demo": "tsx src/attack.ts"
   },
   "dependencies": {
-    "capline": "^0.1.0",
+    "capline": "^0.2.0",
     "dotenv": "^16.4.5"
   },
   "devDependencies": {
